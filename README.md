@@ -1,8 +1,15 @@
+[//]: # (Image References)
+
+[image1]: ./images/prediciton_module1.png "Overview"
+[image2]: ./images/prediction_module2.png "Input output"
+
 # CarND-Path-Planning-Project
+![][image1]
 Self-Driving Car Engineer Nanodegree Program
    
 ### Prediction Module
 The prediction module takes a map and data from sensor fusion (RADAR,LIDAR etc) to generate predictions for what all other (moving) objects in the vincinity of our vehicle are likely to do. Predictions are presented by a set of possible trajectories together with their probabilities.
+![][image2]
    
 ### Simulator.
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases).
