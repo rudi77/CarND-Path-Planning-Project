@@ -4,7 +4,6 @@
 [image2]: ./images/prediction_module2.png "Input output"
 
 # CarND-Path-Planning-Project
-![][image1]
 Self-Driving Car Engineer Nanodegree Program
    
 ### Prediction Module
