@@ -14,6 +14,8 @@ The prediction module takes a map and data from sensor fusion (RADAR,LIDAR etc) 
 Two approaches could be used to predict the trajectories of __dynamic__ objects, either separately or together:
 #### Model-Based Approach
 Takes into account the physical capabilities of the objects as well as the constraints imposed by the road traffic laws and other restrictions.
+
+An model-based algorithm does the following
 ```
 Foreach dynamic object:
    1.) Identify common driving behavior, like change lane, turn left, cross street etc.
