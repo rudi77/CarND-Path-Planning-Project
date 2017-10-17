@@ -10,6 +10,7 @@
 #include "json.hpp"
 
 #include "map.h"
+#include "trajectory_generator.h"
 
 using namespace std;
 
@@ -53,8 +54,9 @@ int main() {
   auto max_s = 6945.554;
 
   Map map(map_file_);
+  TrajectoryGenerator trajectoryGenerator(map);
 
-  h.onMessage([&map](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([&map, &trajectoryGenerator](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -94,33 +96,16 @@ int main() {
 
           json msgJson;
 
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
-
           // We will set the points 0.5 m apart. Since the car moves 50 times a second, 
           // a distance of 0.5m per move will create a velocity of 25 m/s. 25 m/s is close to 50 MPH.
 
           // 1.) Let's start with the trajectory generation
+          auto trajectories = trajectoryGenerator.next_points(car_s);
 
-          auto dist_inc = 0.5;
-
-          for (auto i = 0; i < 50; i++)
-          {
-            // i+1 because this is the next point 
-            auto next_s = car_s + (i + 1)*dist_inc;
-
-            // one and half lanes away from the waypoint -> second lane!
-            auto next_d = 6.0;
-
-            auto xy = map.get_xy(next_s, next_d);
-
-            next_x_vals.push_back(xy[0]);
-            next_y_vals.push_back(xy[1]);
-          }
 
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-          msgJson["next_x"] = next_x_vals;
-          msgJson["next_y"] = next_y_vals;
+          msgJson["next_x"] = trajectories[0];
+          msgJson["next_y"] = trajectories[1];
 
           auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
