@@ -1,8 +1,31 @@
-# CarND-Path-Planning-Project
+[//]: # (Image References)
+
+[image1]: ./images/prediciton_module1.png "Overview"
+[image2]: ./images/prediction_module2.png "Input output"
+
+# CarND-Path-Planning-Project - UNDER CONSTRUCTION
 Self-Driving Car Engineer Nanodegree Program
    
-### Prediction Module
+## Prediction Module
 The prediction module takes a map and data from sensor fusion (RADAR,LIDAR etc) to generate predictions for what all other (moving) objects in the vincinity of our vehicle are likely to do. Predictions are presented by a set of possible trajectories together with their probabilities.
+![][image2]
+
+### Model-Based vs Data-Driven Approaches
+Two approaches could be used to predict the trajectories of __dynamic__ objects, either separately or together:
+#### Model-Based Approach
+Takes into account the physical capabilities of the objects as well as the constraints imposed by the road traffic laws and other restrictions.
+
+An model-based algorithm does the following
+```
+Foreach dynamic object:
+   1.) Identify common driving behavior, like change lane, turn left, cross street etc.
+   2.) Define a process model for each behavior
+   3.) Update beliefs by comparing the observation with the output of the process model
+   4.) Generate trajectory
+```
+#### Data-Driven Approach
+Black box and is trained on lots of data. Uses data to extract patterns which are hidden to model-based approaches.
+
    
 ### Simulator.
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases).
