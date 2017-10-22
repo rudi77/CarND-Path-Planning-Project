@@ -11,6 +11,7 @@
 
 #include "map.h"
 #include "trajectory_generator.h"
+#include "car.h"
 
 using namespace std;
 
@@ -18,11 +19,11 @@ using namespace std;
 using json = nlohmann::json;
 
 // For converting back and forth between radians and degrees.
-constexpr double pi() { return M_PI; }
-
-double deg2rad(double x) { return x * pi() / 180; }
-
-double rad2deg(double x) { return x * 180 / pi(); }
+//constexpr double pi() { return M_PI; }
+//
+//double deg2rad(double x) { return x * pi() / 180; }
+//
+//double rad2deg(double x) { return x * 180 / pi(); }
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -40,10 +41,10 @@ string hasData(string s) {
   return "";
 }
 
-double distance(double x1, double y1, double x2, double y2)
-{
-  return sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
-}
+//double distance(double x1, double y1, double x2, double y2)
+//{
+//  return sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
+//}
 
 int main() {
   uWS::Hub h;
@@ -76,12 +77,14 @@ int main() {
           //cout << j << endl;
 
           // Main car's localization Data
-          double car_x = j[1]["x"];
-          double car_y = j[1]["y"];
-          double car_s = j[1]["s"];
-          double car_d = j[1]["d"];
-          double car_yaw = j[1]["yaw"];
-          double car_speed = j[1]["speed"];
+          Car car;
+          car.x = j[1]["x"];
+          car.y = j[1]["y"];
+          car.s = j[1]["s"];
+          car.d = j[1]["d"];
+          car.yaw = j[1]["yaw"];
+          car.speed = j[1]["speed"];
+          car.current_lane = Lane::Center;
 
           // Previous path data given to the Planner
           auto previous_path_x = j[1]["previous_path_x"];
@@ -96,12 +99,13 @@ int main() {
 
           json msgJson;
 
-          // We will set the points 0.5 m apart. Since the car moves 50 times a second, 
-          // a distance of 0.5m per move will create a velocity of 25 m/s. 25 m/s is close to 50 MPH.
-
           // 1.) Let's start with the trajectory generation
-          auto trajectories = trajectoryGenerator.next_points(car_s);
+          auto trajectories = trajectoryGenerator.next_points(car, previous_path_x, previous_path_y);
 
+          //for (int i = 0; i < trajectories[0].size(); ++i)
+          //{
+          //  cout << "point (" << trajectories[0][i] << " : " << trajectories[1][i] << ")" << endl;
+          //}
 
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           msgJson["next_x"] = trajectories[0];
