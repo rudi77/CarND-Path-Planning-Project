@@ -20,14 +20,14 @@ vector<vector<double>> TrajectoryGenerator::next_points(const Car& car, const ve
 
   auto ref_x = car.x;
   auto ref_y = car.y;
-  auto ref_yawn =  deg2rad(car.yaw);
+  auto ref_yaw =  deg2rad(car.yaw);
 
   // Use the car's position as starting point if there is almost any previous points left
   if (prev_path_x.size() < 2)
   {
     // Use two points that makes the path tangent to the car
-    auto prev_car_x = ref_x - cos(ref_yawn);
-    auto prev_car_y = ref_y - sin(ref_yawn);
+    auto prev_car_x = ref_x - cos(ref_yaw);
+    auto prev_car_y = ref_y - sin(ref_yaw);
 
     ptsx.push_back(prev_car_x);
     ptsy.push_back(prev_car_y);
@@ -45,7 +45,7 @@ vector<vector<double>> TrajectoryGenerator::next_points(const Car& car, const ve
     auto prev_ref_x = prev_path_x[prev_path_x.size() - 2];
     auto prev_ref_y = prev_path_y[prev_path_y.size() - 2];
 
-    ref_yawn = atan2(ref_y - prev_ref_y, ref_x - prev_ref_x);
+    ref_yaw = atan2(ref_y - prev_ref_y, ref_x - prev_ref_x);
 
     ptsx.push_back(prev_ref_x);
     ptsy.push_back(prev_ref_y);
@@ -68,18 +68,13 @@ vector<vector<double>> TrajectoryGenerator::next_points(const Car& car, const ve
   ptsx.push_back(point3[0]);
   ptsy.push_back(point3[1]);
 
-  for (int i = 0; i < ptsx.size(); ++i)
-  {
-    cout << "Point (" << ptsx[i] << ":" << ptsy[i] << ")" << endl;
-  }
-
   // Shifting anchor points into car reference points
   for (int i = 0; i < ptsx.size(); ++i) {
     auto shift_x = ptsx[i] - ref_x;
     auto shift_y = ptsy[i] - ref_y;
 
-    ptsx[i] = shift_x * cos(0 - ref_yawn) - shift_y * sin(0 - ref_yawn);
-    ptsy[i] = shift_x * sin(0 - ref_yawn) + shift_y * cos(0 - ref_yawn);
+    ptsx[i] = shift_x * cos(0 - ref_yaw) - shift_y * sin(0 - ref_yaw);
+    ptsy[i] = shift_x * sin(0 - ref_yaw) + shift_y * cos(0 - ref_yaw);
   }
 
   // Creating spline through the anchor points
@@ -102,11 +97,15 @@ vector<vector<double>> TrajectoryGenerator::next_points(const Car& car, const ve
   auto target_dist = distance(target_x, target_y);
 
   auto ref_vel = 49.5;
+
+  // starting point in our car's locale coordinate system
   auto x_add_on = 0.0;
 
   for (auto i = 1; i <= (50 - prev_path_x.size()); ++i)
   {
-    auto N = target_dist / (0.02 * ref_vel / 2.24);
+    auto N = target_dist / (0.02 * ref_vel / 2.24); // divide by 2.24 because we need this in m/s
+
+    // Calc the next point in the car's local coordinate system
     auto x_point = x_add_on + target_x / N;
     auto y_point = s(x_point);
 
@@ -115,9 +114,9 @@ vector<vector<double>> TrajectoryGenerator::next_points(const Car& car, const ve
     auto x_ref = x_point;
     auto y_ref = y_point;
 
-    // rotate back
-    x_point = x_ref * cos(ref_yawn) - y_ref * sin(ref_yawn);
-    y_point = x_ref * sin(ref_yawn) + y_ref * cos(ref_yawn);
+    // transform coordinates back to global coordinate system
+    x_point = x_ref * cos(ref_yaw) - y_ref * sin(ref_yaw);
+    y_point = x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw);
 
     x_point += ref_x;
     y_point += ref_y;
