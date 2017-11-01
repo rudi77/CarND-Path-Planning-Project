@@ -67,12 +67,12 @@ int main() {
           // j[1] is the data JSON object
 
           // Main car's localization Data
-          double x      = j[1]["x"];
-          double y      = j[1]["y"];
-          double s_     = j[1]["s"];
-          double d      = j[1]["d"];
-          double yaw    = j[1]["yaw"];
-          double speed  = j[1]["speed"];
+          double x = j[1]["x"];
+          double y = j[1]["y"];
+          double s_ = j[1]["s"];
+          double d = j[1]["d"];
+          double yaw = j[1]["yaw"];
+          double speed = j[1]["speed"];
 
           // Previous path's end s and d values 
           double end_path_s = j[1]["end_path_s"];
@@ -87,23 +87,31 @@ int main() {
           // Previous path data given to the Planner
           car.set_previous_waypoints(prev_path_x, prev_path_y);
 
-          cout << "next car speed " << speed << " prev_wp " << prev_path_x.size() << endl;
-
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
           vector<Car> other_cars;
 
+          vector<Car> cars_lane_left;
+          vector<Car> cars_lane_center;
+          vector<Car> cars_lane_right;
+
           for (vector<double> entry : sensor_fusion)
           {
-            auto other_car = Car::create(entry);
+            auto c = Car::create(entry);
+            other_cars.push_back(c);
 
-            if (other_car.id < 0)
+            if (c.current_lane == Left)
             {
-              cout << "Unkown other car " << other_car.to_string() << endl;
-              continue;
+              cars_lane_left.push_back(c);
             }
-            //cout << "Other car " << other_car.to_string() << endl;
-            other_cars.push_back(other_car);
+            else if (c.current_lane == Center)
+            {
+              cars_lane_center.push_back(c);
+            }
+            else
+            {
+              cars_lane_right.push_back(c);
+            }
           }
 
           //cout << "sensor_fusion #car " << other_cars.size() << endl;
@@ -123,6 +131,8 @@ int main() {
           // might be a possible collision.
           auto too_close = false;
           auto target_speed = RefSpeed;
+          auto target_lane = car.current_lane;
+
           for (auto other_car : other_cars)
           {
             if (other_car.is_in_lane(car))
@@ -133,23 +143,96 @@ int main() {
               {
                 too_close = true;
                 target_speed = other_car.speed;
-
                 break;
               }
             }
           }
 
-          //if (too_close)
-          //{
+          if (too_close)
+          {
+            // Check left
+            auto is_safe = true;
 
-          //}
-          //else if (car.speed < RefSpeed)
-          //{
+            // We could either turn left or right. Check both possibilities.
+            // Check if we can safely change the lane, i.e. any car behind or in 
+            // front of the EGO car on the other line is inside the safety_buffer
+            switch (car.current_lane)
+            {
+              case Left:
+              {
+                for (auto other_car : cars_lane_center)
+                {
+                  if (other_car.is_in_front(car) && other_car.is_too_close(car))
+                  {
+                    is_safe = false;
+                  }
 
-          //}
-          
+                  if (is_safe)
+                  {
+                    target_lane = Center;
+                    target_speed = RefSpeed;
+                  }
+                }
+                break;
+              }
+              case Center:
+              {
+                // Go Left
+                for (auto other_car : cars_lane_left)
+                {
+                  if (other_car.is_in_front(car) && other_car.is_too_close(car))
+                  {
+                    is_safe = false;
+                  }
+                }
+
+                if (is_safe)
+                {
+                  target_lane = Left;
+                  target_speed = RefSpeed;
+                }
+                else
+                {
+                  // Go Right
+                  for (auto other_car : cars_lane_right)
+                  {
+                    if (other_car.is_in_front(car) && other_car.is_too_close(car))
+                    {
+                      is_safe = false;
+                    }
+                  }
+
+                  if (is_safe)
+                  {
+                    target_lane = Right;
+                    target_speed = RefSpeed;
+                  }
+                }
+
+                break;
+              }
+              case Right:
+              {
+                for (auto other_car : cars_lane_center)
+                {
+                  if (other_car.is_in_front(car) && other_car.is_too_close(car))
+                  {
+                    is_safe = false;
+                  }
+                }
+
+                if (is_safe)
+                {
+                  target_lane = Center;
+                  target_speed = RefSpeed;
+                }
+                break;
+              }
+            }
+          }
+
           TrajectoryGenerator generator(map);
-          auto trajectory = generator.compute_trajectory(car, target_speed, car.current_lane);
+          auto trajectory = generator.compute_trajectory(car, target_speed, target_lane);
 
           //auto trajectory = behavior_planner.transition(trajectory_predictions, map);
           // END BEHAVIOR PLANNING -------------

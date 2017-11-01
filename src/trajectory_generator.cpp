@@ -57,7 +57,9 @@ vector<Car> TrajectoryGenerator::compute_trajectory(Car& car, double target_spee
   auto start_s = 30;
   for (auto i = start_s; i <= 90; i += 30)
   {
-    auto anchor_point = _map.get_xy(car.s + i, 2 + 4 * static_cast<int>(target_lane));
+    auto anchor_point = (i == 30) 
+      ? _map.get_xy(car.s + i, 2 + 4 * static_cast<int>(target_lane))
+      : _map.get_xy(car.s + i, 2 + 4 * static_cast<int>(target_lane));
 
     anchor_points_x.push_back(anchor_point[0]);
     anchor_points_y.push_back(anchor_point[1]);
@@ -137,7 +139,6 @@ vector<Car> TrajectoryGenerator::compute_trajectory(Car& car, double target_spee
   }
 
   car.speed_prev = current_speed;
-  cout << "Final v: " << current_speed << endl;
 
   assert(trajectory.size() == 50);
 

@@ -151,13 +151,21 @@ public:
     return in_front;
   }
 
+  bool is_behind(const Car& car) const
+  {
+    auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * 0.02 * this->speed;
+    auto car_s = car.prev_waypoints.size() > 0 ? car.end_path_s : car.s;
+
+    return (this->s + check_car_s) > car_s;
+  }
+
   // checks whether another car is to too close.
-  bool is_too_close(const Car& car) const
+  bool is_too_close(const Car& car, double safety_buffer = 30) const
   {
     auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * 0.02 * this->speed;
     auto car_s = car.prev_waypoints.size() > 0 ? car.end_path_s : car.s;
     auto distance = (this->s + check_car_s) - car_s;
-    auto too_close = distance < 30;
+    auto too_close = distance < safety_buffer;
 
     //if (too_close)
     //{
