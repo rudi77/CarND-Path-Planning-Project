@@ -47,7 +47,7 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::map<int,
     {
       case KeepLane: 
       { 
-        car_.target_lane = current_lane;
+        auto target_lane = current_lane;
 
         //get nearest leading car in the same line and check the distance to the ego car at the last time step
         auto nearest_leading_car = get_nearest_leading(other_cars, current_lane);
@@ -56,18 +56,20 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::map<int,
 
         auto target_speed = 0.0;
 
-        if (nearest_leading_car != nullptr && nearest_leading_car->is_too_close(car_))
+        if (nearest_leading_car != -1 &&  other_cars.at(nearest_leading_car)[0].is_too_close(car_))
         {
           auto clone = car_.clone();
-          clone.target_speed = nearest_leading_car->speed;
-          kl_trajectory = generator.compute_trajectory(clone);
-          target_speed = clone.target_speed;
+
+          //std::cout << "CurrentSpeed " << clone.speed << " setting target speed from " << clone.target_speed << " to " << other_cars.at(nearest_leading_car)[0].speed << std::endl;
+
+          target_speed = other_cars.at(nearest_leading_car)[0].speed;
+
+          kl_trajectory = generator.compute_trajectory(clone, target_speed, target_lane);
         }
         else
         {
-          car_.target_speed = RefSpeed;
-          kl_trajectory = generator.compute_trajectory(car_);
-          target_speed = car_.target_speed;
+          target_speed = RefSpeed;
+          kl_trajectory = generator.compute_trajectory(car_, target_speed, target_lane);
         }
 
         possible_trajectories[KeepLane] = kl_trajectory;
@@ -78,16 +80,14 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::map<int,
       case ChangeLaneLeft:
       {
         auto left_lane = get_lane_left(current_lane);
-        car_.target_lane = left_lane;
-        auto clf_trajectory = generator.compute_trajectory(car_);
+        auto clf_trajectory = generator.compute_trajectory(car_, RefSpeed, left_lane);
         possible_trajectories[ChangeLaneLeft] = clf_trajectory;
         break;
       }      
       case ChangeLaneRight: 
       {       
         auto right_lane = get_lane_right(current_lane);
-        car_.target_lane = right_lane;
-        auto clf_trajectory = generator.compute_trajectory(car_);
+        auto clf_trajectory = generator.compute_trajectory(car_, RefSpeed, right_lane);
         possible_trajectories[ChangeLaneRight] = clf_trajectory;
         break;
       }
@@ -154,28 +154,29 @@ std::vector<BehaviorPlanner::State> BehaviorPlanner::get_possible_states(Lane cu
   return possible_states;
 }
 
-Car *BehaviorPlanner::get_nearest_leading(const std::map<int, std::vector<Car>>& other_cars, int current_lane) const
+int BehaviorPlanner::get_nearest_leading(const std::map<int, std::vector<Car>>& other_cars_map, int current_lane) const
 {
   std::vector<int> vehicles_in_lane;
 
   // pointer to the nearest car in front of the EGOCAR
-  Car *car_in_front = nullptr;
+  auto car_in_front = -1;
 
   // Iterate over each car and check if it is in the same lane
   // and in front of the ego car. And then check whether it is
   // the nearest leading car.
-  for (auto pair : other_cars)
+  for (auto pair : other_cars_map)
   {
     auto other_car = pair.second[0];
+
     if (other_car.is_in_lane(car_) && other_car.is_in_front(car_))
     {
-      if (car_in_front == nullptr)
+      if (car_in_front == -1)
       {
-        car_in_front = &other_car;
+        car_in_front = other_car.id;
       }
-      else if (other_car.s < car_in_front->s)
+      else if (other_car.s < other_cars_map.at(car_in_front)[0].s)
       {
-        car_in_front = &other_car;
+        car_in_front = other_car.id;
       }
     }
   }

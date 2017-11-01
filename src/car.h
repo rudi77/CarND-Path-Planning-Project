@@ -11,22 +11,28 @@
 class Car
 {
 public:
-
-
   // This constructor is used by the ego car
   explicit Car(int id_) 
     : id(id_), 
       x(0.0), y(0.0),
       s(0.0), d(0.0),
       yaw(0.0), 
-      speed(0.0), target_speed(0.0),
-      current_lane(Lane::Unkown), target_lane(Lane::Unkown) {}
+      speed(0.0),
+      current_lane(Lane::Unkown),
+      end_path_s(0.0), end_path_d(0.0) {}
 
   // This constructor is used for the vehicles detected by the car's sensors.
   explicit Car(int id, double x, double y, double s, double d, double speed, double yaw)
   {
     this->id = id;
+    update(x, y, s, d, yaw, speed, 0.0, 0.0);
+  }
+
+  void update(double x, double y, double s, double d, double yaw, double speed, double end_path_s, double end_path_d)
+  {
     update(x, y, s, d, yaw, speed);
+    this->end_path_s = end_path_s;
+    this->end_path_d = end_path_d;
   }
 
   // Updates the state of a vehicle
@@ -38,9 +44,7 @@ public:
     this->d = d;
     this->yaw = yaw;
     this->speed = speed;
-    this->target_speed = this->speed;
     this->current_lane = d_to_lane(d);
-    this->target_lane = this->current_lane;
   }
 
   void set_previous_waypoints(std::vector<double> prev_x, std::vector<double> prev_y)
@@ -62,29 +66,64 @@ public:
   double s;
   double d;
   double yaw;
-
   double speed;
-  double target_speed;
-
+  double speed_prev;
   Lane current_lane;
-  Lane target_lane;
-
-  // The simulator updates the state every 20 ms and therefore
-  // a timestamp in milliseconds should be sufficient.
-  // long timestamp;
+  double end_path_s;
+  double end_path_d;
 
   std::vector<WayPoint> prev_waypoints;
 
-  Car clone()
+  Car clone() const
   {
-    Car car(id, x, y, s, d, speed, yaw);
+    Car car(id);
+    car.x = this->x;
+    car.y = this->y;
+    car.s = this->s;
+    car.d = this->d;
+    car.speed = this->speed;
+    car.current_lane = this->current_lane;
+    car.end_path_s = this->end_path_s;
+    car.end_path_d = this->end_path_d;
+
+    if (car.prev_waypoints.size() > 0)
+    {
+      std::vector<double> prev_x;
+      std::vector<double> prev_y;
+
+      for (auto wp : car.prev_waypoints)
+      {
+        prev_x.push_back(wp.x);
+        prev_y.push_back(wp.y);
+      }
+
+      car.set_previous_waypoints(prev_x, prev_y);
+    }
     return car;
+  }
+
+  bool operator==(const Car& car) const
+  {
+    return
+      this->id == car.id &&
+      this->x == car.x &&
+      this->y == car.y &&
+      this->s == car.s &&
+      this->d == car.d &&
+      this->yaw == car.yaw &&
+      this->speed == car.speed &&
+      this->current_lane == car.current_lane;
   }
 
   std::string to_string() const
   {
     std::stringstream ss;
-    ss << "x: " << x << " y: " << y << " s: " << s << " d: " << d << " yaw: " << yaw << " v: " << speed;
+    ss  << "id: " << id 
+        << " x: " << x << " y: " << y 
+        << " s: " << s << " d: " << d 
+        << " yaw: " << yaw << " v: " << speed 
+        << " end_s " << end_path_s << " end_d " << end_path_d
+        << " lane " << current_lane;
     return ss.str();
   }
 
@@ -97,18 +136,35 @@ public:
   // checks whether this car is in front of "car"
   bool is_in_front(const Car& car) const
   {
-    return this->s > car.s;
+    auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * 0.02 * this->speed;
+    auto car_s = car.prev_waypoints.size() > 0 ? car.end_path_s : car.s;
+
+    auto in_front =  (this->s + check_car_s) > car_s;
+
+    //if (in_front)
+    //{
+    //  std::cout << "car is in front\n";
+    //  std::cout << "\tFrontCar " << this->to_string() << "\n";
+    //  std::cout << "\tCar " << car.to_string() << std::endl;
+    //}
+
+    return in_front;
   }
 
   // checks whether another car is to too close.
   bool is_too_close(const Car& car) const
   {
     auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * 0.02 * this->speed;
-    auto distance = this->s - (car.s + check_car_s);
+    auto car_s = car.prev_waypoints.size() > 0 ? car.end_path_s : car.s;
+    auto distance = (this->s + check_car_s) - car_s;
     auto too_close = distance < 30;
 
-    if (too_close)
-      std::cout << "Car " << this->id << " is too close, dist " << distance << std::endl;
+    //if (too_close)
+    //{
+    //  std::cout << "car is too close, dist: " << distance << "\n";
+    //  std::cout << "\tToCloseCar " << this->to_string() << "\n";
+    //  std::cout << "\tCar " << car.to_string() << std::endl;
+    //}
 
     return too_close;
   }

@@ -44,7 +44,7 @@ private:
 
 
   // Gets the car which is in the same lane and has minimum distance to the ego car.
-  Car *get_nearest_leading(const std::map<int, std::vector<Car>>& other_cars, int current_lane) const;
+  int get_nearest_leading(const std::map<int, std::vector<Car>>& other_cars, int current_lane) const;
 };
 
 

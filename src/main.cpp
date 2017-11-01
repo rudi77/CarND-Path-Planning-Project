@@ -47,8 +47,6 @@ int main() {
 
   Map map(map_file_);
   Car car(EGOCAR);
-  car.target_speed = RefSpeed;
-
   BehaviorPlanner behavior_planner(car, max_s);
 
   h.onMessage([&map, &car, &behavior_planner](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
@@ -69,7 +67,19 @@ int main() {
           // j[1] is the data JSON object
 
           // Main car's localization Data
-          car.update(j[1]["x"], j[1]["y"], j[1]["s"], j[1]["d"], j[1]["yaw"], j[1]["speed"]);
+          double x      = j[1]["x"];
+          double y      = j[1]["y"];
+          double s_     = j[1]["s"];
+          double d      = j[1]["d"];
+          double yaw    = j[1]["yaw"];
+          double speed  = j[1]["speed"];
+
+          // Previous path's end s and d values 
+          double end_path_s = j[1]["end_path_s"];
+          double end_path_d = j[1]["end_path_d"];
+
+
+          car.update(x, y, s_, d, yaw, speed, end_path_s, end_path_d);
 
           auto prev_path_x = j[1]["previous_path_x"];
           auto prev_path_y = j[1]["previous_path_y"];
@@ -77,9 +87,7 @@ int main() {
           // Previous path data given to the Planner
           car.set_previous_waypoints(prev_path_x, prev_path_y);
 
-          // Previous path's end s and d values 
-          double end_path_s = j[1]["end_path_s"];
-          double end_path_d = j[1]["end_path_d"];
+          cout << "next car speed " << speed << " prev_wp " << prev_path_x.size() << endl;
 
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
@@ -87,13 +95,25 @@ int main() {
 
           for (vector<double> entry : sensor_fusion)
           {
-            other_cars.push_back(Car::create(entry));
+            auto other_car = Car::create(entry);
+
+            if (other_car.id < 0)
+            {
+              cout << "Unkown other car " << other_car.to_string() << endl;
+              continue;
+            }
+            //cout << "Other car " << other_car.to_string() << endl;
+            other_cars.push_back(other_car);
           }
+
+          //cout << "sensor_fusion #car " << other_cars.size() << endl;
 
           // START PREDICTIONS
 
           // Calc trajectories for each vehicle
-          auto trajectory_predictions = Predictor::predict_trajectories(other_cars, map);
+          //auto trajectory_predictions = Predictor::predict_trajectories(other_cars, map);
+
+          //cout << "trajector predictions end" << endl;
 
           // END PREDICTIONS
 
@@ -101,41 +121,37 @@ int main() {
           // Check for possible collisions - car is too close in the future
           // Therefore iterate over all other vehciles and check if there
           // might be a possible collision.
-          //auto too_close = false;
+          auto too_close = false;
+          auto target_speed = RefSpeed;
+          for (auto other_car : other_cars)
+          {
+            if (other_car.is_in_lane(car))
+            {
+              // if other_car is in front of ego car and distance is lower than x meters
+              // then either slow down or try to change the lane.
+              if (other_car.is_in_front(car) && other_car.is_too_close(car))
+              {
+                too_close = true;
+                target_speed = other_car.speed;
 
-          //for (auto other_car : other_cars)
-          //{
-          //  if (other_car.is_in_lane(car))
-          //  {
-          //    // if other_car is in front of ego car and distance is lower than x meters
-          //    // then either slow down or try to change the lane.
-          //    if (other_car.is_in_front(car) && other_car.is_too_close(car))
-          //    {
-          //      too_close = true;
-          //      //car.target_speed = other_car.speed;
-          //    }
-          //  }
-          //}
+                break;
+              }
+            }
+          }
 
           //if (too_close)
           //{
-          //  //car.speed -= 0.225;
-          //  //car.target_speed = RefSpeed;
-          //  car.target_lane = get_lane_left(car.current_lane);
-
-          //  cout << "car currentlane: " << car.current_lane << " targetlane: " << car.target_lane << endl;
 
           //}
           //else if (car.speed < RefSpeed)
           //{
-          //  //car.speed += 0.225;
-          //  car.target_speed = RefSpeed;
+
           //}
           
-          //TrajectoryGenerator generator(map);
-          //auto trajectory = generator.compute_trajectory(car);
+          TrajectoryGenerator generator(map);
+          auto trajectory = generator.compute_trajectory(car, target_speed, car.current_lane);
 
-          auto trajectory = behavior_planner.transition(trajectory_predictions, map);
+          //auto trajectory = behavior_planner.transition(trajectory_predictions, map);
           // END BEHAVIOR PLANNING -------------
 
           vector<double> next_x_vals;
@@ -143,10 +159,10 @@ int main() {
 
           for (auto t : trajectory)
           {
-            //next_x_vals.push_back(t.x);
-            //next_y_vals.push_back(t.y);
-            next_x_vals.push_back(t[0]);
-            next_y_vals.push_back(t[1]);
+            next_x_vals.push_back(t.x);
+            next_y_vals.push_back(t.y);
+            //next_x_vals.push_back(t[0]);
+            //next_y_vals.push_back(t[1]);
           }
 
           json msgJson;

@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "map.h"
+#include "helpers.h"
 
 class Car;
 
@@ -12,6 +13,5 @@ private:
 public:
   explicit TrajectoryGenerator(const Map& map);
 
-  std::vector<Car> compute_trajectory(const Car& car);
-  //std::vector<std::vector<double>> compute_trajectory(const Car& car);
+  std::vector<Car> compute_trajectory(Car& car, double target_speed, Lane target_lane);
 };

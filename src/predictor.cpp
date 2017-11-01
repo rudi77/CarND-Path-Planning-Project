@@ -12,10 +12,11 @@ map<int, vector<Car>> Predictor::predict_trajectories(const vector<Car>& other_c
   std::map<int, vector<Car>> trajectories;
   for (auto car : other_cars)
   {
-    auto trajectory = trajectory_generator.compute_trajectory(car);
+    auto trajectory = trajectory_generator.compute_trajectory(car, car.speed, car.current_lane);
 
     assert(trajectory.size() == 50);
 
+    trajectory.insert(trajectory.begin(), car);
     trajectories[car.id] = trajectory;
   }
 

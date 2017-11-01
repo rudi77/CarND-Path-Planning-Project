@@ -11,6 +11,7 @@ const double RefSpeed     = 49.5;
 const double DeltaT       = 0.02;
 const double DeltaTT      = 0.02*0.02;
 const double AccMax       = 10.0;
+const double Ms2Mps       = 2.24;
 
 enum Lane
 {
@@ -73,6 +74,3 @@ inline Lane get_lane_right(Lane lane)
 
   throw std::runtime_error("Invalid lane");
 }
-
-
-
