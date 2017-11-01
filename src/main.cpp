@@ -9,21 +9,17 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
 
+#include "helpers.h"
 #include "map.h"
-#include "trajectory_generator.h"
 #include "car.h"
+#include "trajectory_generator.h"
+#include "predictor.h"
+#include "behavior_planner.h"
 
 using namespace std;
 
 // for convenience
 using json = nlohmann::json;
-
-// For converting back and forth between radians and degrees.
-//constexpr double pi() { return M_PI; }
-//
-//double deg2rad(double x) { return x * pi() / 180; }
-//
-//double rad2deg(double x) { return x * 180 / pi(); }
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -41,11 +37,6 @@ string hasData(string s) {
   return "";
 }
 
-//double distance(double x1, double y1, double x2, double y2)
-//{
-//  return sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
-//}
-
 int main() {
   uWS::Hub h;
 
@@ -55,16 +46,18 @@ int main() {
   auto max_s = 6945.554;
 
   Map map(map_file_);
-  TrajectoryGenerator trajectoryGenerator(map);
+  Car car(EGOCAR);
+  car.target_speed = RefSpeed;
 
-  h.onMessage([&map, &trajectoryGenerator](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  BehaviorPlanner behavior_planner(car, max_s);
+
+  h.onMessage([&map, &car, &behavior_planner](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
-
       auto s = hasData(data);
 
       if (s != "") {
@@ -74,21 +67,15 @@ int main() {
 
         if (event == "telemetry") {
           // j[1] is the data JSON object
-          //cout << j << endl;
 
           // Main car's localization Data
-          Car car;
-          car.x = j[1]["x"];
-          car.y = j[1]["y"];
-          car.s = j[1]["s"];
-          car.d = j[1]["d"];
-          car.yaw = j[1]["yaw"];
-          car.speed = j[1]["speed"];
-          car.current_lane = Lane::Center;
+          car.update(j[1]["x"], j[1]["y"], j[1]["s"], j[1]["d"], j[1]["yaw"], j[1]["speed"]);
+
+          auto prev_path_x = j[1]["previous_path_x"];
+          auto prev_path_y = j[1]["previous_path_y"];
 
           // Previous path data given to the Planner
-          auto previous_path_x = j[1]["previous_path_x"];
-          auto previous_path_y = j[1]["previous_path_y"];
+          car.set_previous_waypoints(prev_path_x, prev_path_y);
 
           // Previous path's end s and d values 
           double end_path_s = j[1]["end_path_s"];
@@ -96,24 +83,81 @@ int main() {
 
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
+          vector<Car> other_cars;
 
-          json msgJson;
+          for (vector<double> entry : sensor_fusion)
+          {
+            other_cars.push_back(Car::create(entry));
+          }
 
-          // 1.) Let's start with the trajectory generation
-          auto trajectories = trajectoryGenerator.next_points(car, previous_path_x, previous_path_y);
+          // START PREDICTIONS
 
-          //for (int i = 0; i < trajectories[0].size(); ++i)
+          // Calc trajectories for each vehicle
+          auto trajectory_predictions = Predictor::predict_trajectories(other_cars, map);
+
+          // END PREDICTIONS
+
+          // START Behavoir planning -------------
+          // Check for possible collisions - car is too close in the future
+          // Therefore iterate over all other vehciles and check if there
+          // might be a possible collision.
+          //auto too_close = false;
+
+          //for (auto other_car : other_cars)
           //{
-          //  cout << "point (" << trajectories[0][i] << " : " << trajectories[1][i] << ")" << endl;
+          //  if (other_car.is_in_lane(car))
+          //  {
+          //    // if other_car is in front of ego car and distance is lower than x meters
+          //    // then either slow down or try to change the lane.
+          //    if (other_car.is_in_front(car) && other_car.is_too_close(car))
+          //    {
+          //      too_close = true;
+          //      //car.target_speed = other_car.speed;
+          //    }
+          //  }
           //}
 
-          // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-          msgJson["next_x"] = trajectories[0];
-          msgJson["next_y"] = trajectories[1];
+          //if (too_close)
+          //{
+          //  //car.speed -= 0.225;
+          //  //car.target_speed = RefSpeed;
+          //  car.target_lane = get_lane_left(car.current_lane);
+
+          //  cout << "car currentlane: " << car.current_lane << " targetlane: " << car.target_lane << endl;
+
+          //}
+          //else if (car.speed < RefSpeed)
+          //{
+          //  //car.speed += 0.225;
+          //  car.target_speed = RefSpeed;
+          //}
+          
+          //TrajectoryGenerator generator(map);
+          //auto trajectory = generator.compute_trajectory(car);
+
+          auto trajectory = behavior_planner.transition(trajectory_predictions, map);
+          // END BEHAVIOR PLANNING -------------
+
+          vector<double> next_x_vals;
+          vector<double> next_y_vals;
+
+          for (auto t : trajectory)
+          {
+            //next_x_vals.push_back(t.x);
+            //next_y_vals.push_back(t.y);
+            next_x_vals.push_back(t[0]);
+            next_y_vals.push_back(t[1]);
+          }
+
+          json msgJson;
+          msgJson["next_x"] = next_x_vals;
+          msgJson["next_y"] = next_y_vals;
 
           auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
-          //this_thread::sleep_for(chrono::milliseconds(1000));
+          // simulate a certain delay
+          this_thread::sleep_for(chrono::milliseconds(100));
+
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 
         }

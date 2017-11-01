@@ -1,6 +1,7 @@
 #include <fstream>
 #include <sstream>
 #include "map.h"
+#include "helpers.h"
 
 using namespace std;
 
@@ -32,6 +33,13 @@ Map::Map(const string& map_file)
     d_x.push_back(d_x_);
     d_y.push_back(d_y_);
   }
+
+  // Set start and endpoints of the route. In our case start and 
+  // end point are the same.
+  x_start = x[0];
+  y_start = y[0];
+  x_destination = x[0];
+  y_destination = y[0];
 }
 
 int Map::closest_waypoint(double x, double y)
@@ -57,14 +65,12 @@ int Map::closest_waypoint(double x, double y)
 
 int Map::next_waypoint(double x, double y, double theta)
 {
-
   auto closestWaypoint = closest_waypoint(x, y);
 
   auto map_x = this->x[closestWaypoint];
   auto map_y = this->y[closestWaypoint];
 
   auto heading = atan2((map_y - y), (map_x - x));
-
   auto angle = abs(theta - heading);
 
   if (angle > M_PI / 4)
@@ -129,7 +135,7 @@ vector<double> Map::get_xy(double s, double d)
 {
   auto prev_wp = -1;
 
-  while (s > this->s[prev_wp + 1] && (prev_wp < (int)(this->s.size() - 1)))
+  while (s > this->s[prev_wp + 1] && (prev_wp < static_cast<int>(this->s.size() - 1)))
   {
     prev_wp++;
   }
