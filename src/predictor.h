@@ -11,5 +11,5 @@ class Predictor
 {
 public:
   // Predicts the trajectories of other cars.
-  static std::map<int, std::vector<Car>> predict_trajectories(const std::vector<Car>& other_cars, const Map& map);
+  static std::map<int, std::vector<CarState>> predict_trajectories(const std::vector<CarState>& other_cars, const Map& map);
 };

@@ -25,7 +25,7 @@ double BehaviorPlanner::distance_cost()
 {
 }
 
-std::vector<std::vector<double>> BehaviorPlanner::transition(const std::map<int, std::vector<Car>>& other_cars, const Map& map)
+std::vector<std::vector<double>> BehaviorPlanner::transition(const std::map<int, std::vector<CarState>>& other_cars, const Map& map)
 {
   TrajectoryGenerator generator(map);
 
@@ -33,7 +33,7 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::map<int,
   auto current_lane = car_.current_lane;
   auto possible_states = get_possible_states(current_lane);
 
-  std::map<State, std::vector<Car>> possible_trajectories;
+  std::map<State, std::vector<CarState>> possible_trajectories;
   std::map<State, double> possible_costs;
 
   std::vector<std::vector<double>> next_waypoints;
@@ -52,7 +52,7 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::map<int,
         //get nearest leading car in the same line and check the distance to the ego car at the last time step
         auto nearest_leading_car = get_nearest_leading(other_cars, current_lane);
 
-        std::vector<Car> kl_trajectory;
+        std::vector<CarState> kl_trajectory;
 
         auto target_speed = 0.0;
 
@@ -154,7 +154,7 @@ std::vector<BehaviorPlanner::State> BehaviorPlanner::get_possible_states(Lane cu
   return possible_states;
 }
 
-int BehaviorPlanner::get_nearest_leading(const std::map<int, std::vector<Car>>& other_cars_map, int current_lane) const
+int BehaviorPlanner::get_nearest_leading(const std::map<int, std::vector<CarState>>& other_cars_map, int lane) const
 {
   std::vector<int> vehicles_in_lane;
 
@@ -184,7 +184,7 @@ int BehaviorPlanner::get_nearest_leading(const std::map<int, std::vector<Car>>& 
   return car_in_front;
 }
 
-double BehaviorPlanner::calc_cost(const std::vector<Car> ego_car_trajetory, const std::map<int, std::vector<Car>>& other_cars_trajectories)
+double BehaviorPlanner::calc_cost(const std::vector<CarState> ego_car_trajetory, const std::map<int, std::vector<CarState>>& other_cars_trajectories)
 {
 
 }

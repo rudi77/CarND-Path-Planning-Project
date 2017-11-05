@@ -10,7 +10,7 @@ using namespace std;
 TrajectoryGenerator::TrajectoryGenerator(const Map& map) : _map(map)
 {}
 
-vector<Car> TrajectoryGenerator::compute_trajectory(Car& car, double target_speed, Lane target_lane)
+vector<CarState> TrajectoryGenerator::compute_trajectory(CarState& car, double target_speed, Lane target_lane)
 {
   // Create a list of evenly spaced waypoints.
   vector<double> anchor_points_x;
@@ -53,14 +53,66 @@ vector<Car> TrajectoryGenerator::compute_trajectory(Car& car, double target_spee
     anchor_points_y.push_back(ref_car_y);
   }
 
+  // Check: shall egocar stay in the same line or shall it turn to another lane
+  if (car.current_lane == target_lane)
+  {
+    return keep_lane_trajectory(car, anchor_points_x, anchor_points_y, target_speed, ref_car_x, ref_car_y, ref_car_yaw);
+  }
+  else
+  {
+    // When the egocar shall change the lane then JMT is used to get a smooth trajectory
+
+    auto s_d_values = _map.get_frenet(ref_car_x, ref_car_y, ref_car_yaw);
+
+    auto s_start  = { s_d_values[0], car.speed_prev/2.24, 0.0 };
+    auto s_end    = { s_d_values[0] + 45, target_speed/2.24, 0.0 };
+
+    auto from_d = s_d_values[1];
+    auto to_d = car.lane_to_d(target_lane);
+
+    auto d_start = { from_d, 0.0, 0.0 };
+    auto d_end = { to_d, 0.0, 0.0 };
+
+    auto t = 1.5; // in seconds
+
+    auto trajectory_in_frenet = switch_lane_trajectory(s_start, s_end, d_start, d_end, 1.5);
+
+    vector<CarState> trajectory;
+
+    auto trajectory_s = trajectory_in_frenet[0];
+    auto trajectory_d = trajectory_in_frenet[1];
+
+    assert(trajectory_s.size() == trajectory_d.size());
+
+    for (int i = 0; i < trajectory_s.size(); ++i)
+    {
+      auto xy_points = _map.get_xy(trajectory_s[i], trajectory_d[i]);
+
+      CarState next_car_state(car.id, xy_points[0], xy_points[1], trajectory_s[0], trajectory_d[i], target_speed*2.24, rad2deg(ref_car_yaw));
+
+      cout << next_car_state.to_string() << endl;
+
+      trajectory.push_back(next_car_state);
+    }
+
+    return trajectory;
+  }
+}
+
+std::vector<CarState> TrajectoryGenerator::keep_lane_trajectory(
+  CarState& car,
+  std::vector<double> anchor_points_x,
+  std::vector<double> anchor_points_y,
+  double target_speed,
+  double ref_car_x,
+  double ref_car_y,
+  double ref_car_yaw)
+{
   // Now add evenly spaced anchor points in Frenet coordinates
   auto start_s = 30;
   for (auto i = start_s; i <= 90; i += 30)
   {
-    auto anchor_point = (i == 30) 
-      ? _map.get_xy(car.s + i, 2 + 4 * static_cast<int>(target_lane))
-      : _map.get_xy(car.s + i, 2 + 4 * static_cast<int>(target_lane));
-
+    auto anchor_point = _map.get_xy(car.s + i, 2 + 4 * static_cast<int>(car.current_lane));
     anchor_points_x.push_back(anchor_point[0]);
     anchor_points_y.push_back(anchor_point[1]);
   }
@@ -79,7 +131,7 @@ vector<Car> TrajectoryGenerator::compute_trajectory(Car& car, double target_spee
 
   s.set_points(anchor_points_x, anchor_points_y);
 
-  vector<Car> trajectory;
+  vector<CarState> trajectory;
 
   // Add all points from the previous time
   for (int i = 0; i < car.prev_waypoints.size(); ++i)
@@ -88,22 +140,15 @@ vector<Car> TrajectoryGenerator::compute_trajectory(Car& car, double target_spee
     auto y_point = car.prev_waypoints[i].y;
     auto s_d_values = _map.get_frenet(x_point, y_point, ref_car_yaw);
 
-    Car next_car_state(car.id, x_point, y_point, s_d_values[0], s_d_values[1], car.speed, rad2deg(ref_car_yaw));
+    CarState next_car_state(car.id, x_point, y_point, s_d_values[0], s_d_values[1], car.speed, rad2deg(ref_car_yaw));
     trajectory.push_back(next_car_state);
   }
-
-  // Split spline so that we travel at desired velocity
-  auto target_x = 30.0;
-  auto target_y = s(target_x);
-  auto target_dist = distance(target_x, target_y);
 
   // starting point in our car's locale coordinate system
   auto x_add_on = 0.0;
   auto a = 3;
   auto current_speed = car.speed_prev;
 
-  //std::cout << "currentspeed " << current_speed << std::endl;
-  
   for (auto i = 1; i <= 50 - car.prev_waypoints.size(); ++i)
   {
     if (current_speed < target_speed)
@@ -134,7 +179,7 @@ vector<Car> TrajectoryGenerator::compute_trajectory(Car& car, double target_spee
 
     auto s_d_values = _map.get_frenet(x_point, y_point, ref_car_yaw);
 
-    Car next_car_state(car.id, x_point, y_point, s_d_values[0], s_d_values[1], current_speed, rad2deg(ref_car_yaw));
+    CarState next_car_state(car.id, x_point, y_point, s_d_values[0], s_d_values[1], current_speed, rad2deg(ref_car_yaw));
     trajectory.push_back(next_car_state);
   }
 
@@ -143,4 +188,41 @@ vector<Car> TrajectoryGenerator::compute_trajectory(Car& car, double target_spee
   assert(trajectory.size() == 50);
 
   return trajectory;
+}
+
+std::vector<std::vector<double>> TrajectoryGenerator::switch_lane_trajectory(
+  vector<double> s_start,
+  vector<double> s_end,
+  vector<double> d_start,
+  vector<double> d_end,
+  double t)
+{
+  JMT s_jmt;
+  JMT d_jmt;
+
+  s_jmt.set_boundaries(s_start, s_end, t);
+  cout << s_jmt.to_string() << endl;
+
+  d_jmt.set_boundaries(d_start, d_end, t);
+  cout << d_jmt.to_string() << endl;
+
+  vector<double> s_values;
+  vector<double> d_values;
+
+  auto N = int(t / 0.02);
+
+  cout << "JMT N: " << N << endl;
+
+  for (auto i = 0; i < N; ++i)
+  {
+    auto s = s_jmt(i);
+    auto d = d_jmt(i);
+
+    s_values.push_back(s);
+    d_values.push_back(d);
+  }
+
+  cout << "JMT calculated s and d" << endl;
+
+  return { s_values, d_values };
 }

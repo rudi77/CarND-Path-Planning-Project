@@ -45,6 +45,16 @@ inline double v_new(double v0, double a)
   return v0 + a * DeltaT;
 }
 
+inline std::vector<double> quadratic_solver(double c, double b, double a)
+{
+  // Check: a must not be 0
+
+  auto x1 = (-1 * b + sqrt(b*b - 4 * a*c)) / 2 * a;
+  auto x2 = (-1 * b - sqrt(b*b - 4 * a*c)) / 2 * a;
+
+  return { x1, x2 };
+}
+
 inline Lane get_lane_left(Lane lane)
 {
   if (lane == Center)

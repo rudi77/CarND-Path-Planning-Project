@@ -37,6 +37,17 @@ string hasData(string s) {
   return "";
 }
 
+
+int get_nearest_leading_car(const CarState& egocar, const vector<CarState>& other_cars, Lane lane)
+{
+  return -1;
+}
+
+int get_nearest_car_behind(const CarState& egocar, const vector<CarState>& other_cars, Lane lane)
+{
+  return -1;
+}
+
 int main() {
   uWS::Hub h;
 
@@ -46,7 +57,7 @@ int main() {
   auto max_s = 6945.554;
 
   Map map(map_file_);
-  Car car(EGOCAR);
+  CarState car(EGOCAR);
   BehaviorPlanner behavior_planner(car, max_s);
 
   h.onMessage([&map, &car, &behavior_planner](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
@@ -89,15 +100,15 @@ int main() {
 
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
-          vector<Car> other_cars;
+          vector<CarState> other_cars;
 
-          vector<Car> cars_lane_left;
-          vector<Car> cars_lane_center;
-          vector<Car> cars_lane_right;
+          vector<CarState> cars_lane_left;
+          vector<CarState> cars_lane_center;
+          vector<CarState> cars_lane_right;
 
           for (vector<double> entry : sensor_fusion)
           {
-            auto c = Car::create(entry);
+            auto c = CarState::create(entry);
             other_cars.push_back(c);
 
             if (c.current_lane == Left)
