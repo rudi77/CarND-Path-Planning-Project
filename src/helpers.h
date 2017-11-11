@@ -1,17 +1,25 @@
 #pragma once
 
 #include <cmath>
-#include <stdexcept>
 
 const int EGOCAR = 0xDEADBEEF;
 
-const double SpeedLimit   = 50.0;
-const double SpeedBuffer  = 0.5;
-const double RefSpeed     = 49.5;
-const double DeltaT       = 0.02;
-const double DeltaTT      = 0.02*0.02;
-const double AccMax       = 10.0;
-const double Ms2Mps       = 2.24;
+const double MaxS           = 6945.554;
+const double SpeedLimit     = 50.0;
+const double SpeedBuffer    = 0.5;
+const double OptimalSpeed   = 49.5;
+const double DeltaT         = 0.02;
+const double DeltaTT        = 0.02*0.02;
+const double AccMax         = 10.0;
+const double Ms2Mps         = 2.24;
+const double Vehicle_Radius = 1.5;
+const double Max_Jerk       = 10.0;   // m / s / s / s
+
+const double Expected_Jerk_In_One_Sec = 2.0; // m / s / s
+const double Expected_Acc_In_One_Sec = 1.0;  // m / s
+
+const std::vector<double> SIGMA_S = { 10.0, 3.0, 0.1 };
+const std::vector<double> SIGMA_D = { 0.0, 0.0, 0.0 };
 
 enum Lane
 {
@@ -45,6 +53,12 @@ inline double v_new(double v0, double a)
   return v0 + a * DeltaT;
 }
 
+inline double round2(double x, int decimals)
+{
+  auto d = pow(10.0, decimals);
+  return round(x * d) / d;
+}
+
 inline std::vector<double> quadratic_solver(double c, double b, double a)
 {
   // Check: a must not be 0
@@ -53,34 +67,4 @@ inline std::vector<double> quadratic_solver(double c, double b, double a)
   auto x2 = (-1 * b - sqrt(b*b - 4 * a*c)) / 2 * a;
 
   return { x1, x2 };
-}
-
-inline Lane get_lane_left(Lane lane)
-{
-  if (lane == Center)
-  {
-    return Left;
-  }
-
-  if (lane == Right)
-  {
-    return Center;
-  }
-
-  throw std::runtime_error("Invalid lane");
-}
-
-inline Lane get_lane_right(Lane lane)
-{
-  if (lane == Center)
-  {
-    return Right;
-  }
-
-  if (lane == Left)
-  {
-    return Center;
-  }
-
-  throw std::runtime_error("Invalid lane");
 }

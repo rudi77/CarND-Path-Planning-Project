@@ -157,14 +157,12 @@ public:
     auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * 0.02 * this->speed;
     auto car_s = car.prev_waypoints.size() > 0 ? car.end_path_s : car.s;
     auto distance = (this->s + check_car_s) - car_s;
-    auto too_close = distance < safety_buffer;
+    auto too_close = 0 < distance && distance < safety_buffer;
 
-    //if (too_close)
-    //{
-    //  std::cout << "car is too close, dist: " << distance << "\n";
-    //  std::cout << "\tToCloseCar " << this->to_string() << "\n";
-    //  std::cout << "\tCar " << car.to_string() << std::endl;
-    //}
+    if (too_close)
+    {
+      std::cout << "car " << this->id << " is too close, dist " << distance << " : safety_buffer " << safety_buffer << std::endl;
+    }
 
     return too_close;
   }
@@ -191,19 +189,19 @@ public:
   {
     if (0.0 <= d && d < 4.0) 
     {
-      return Lane::Left;
+      return Left;
     }
     
     if (4.0 <= d && d < 8.0) 
     {
-      return Lane::Center;
+      return Center;
     }
     
     if (8.0 <= d && d < 12.0) {
-      return Lane::Right;
+      return Right;
     }
     
-    return Lane::Unkown;
+    return Unkown;
   }
 
   static double lane_to_d(Lane lane)

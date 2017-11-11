@@ -11,10 +11,10 @@
 
 #include "helpers.h"
 #include "map.h"
+#include "road.h"
 #include "car.h"
-#include "trajectory_generator.h"
-#include "predictor.h"
 #include "behavior_planner.h"
+
 
 using namespace std;
 
@@ -50,17 +50,13 @@ int get_nearest_car_behind(const CarState& egocar, const vector<CarState>& other
 
 int main() {
   uWS::Hub h;
-
-  // Waypoint map to read from
-  string map_file_ = "../data/highway_map.csv";
-  // The max s value before wrapping around the track back to 0
-  auto max_s = 6945.554;
-
-  Map map(map_file_);
+ 
+  Map map("../data/highway_map.csv");
   CarState car(EGOCAR);
-  BehaviorPlanner behavior_planner(car, max_s);
+  Road road(car);
+  BehaviorPlanner behavior_planner(car);
 
-  h.onMessage([&map, &car, &behavior_planner](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([&map, &road, &car, &behavior_planner](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -102,166 +98,19 @@ int main() {
           auto sensor_fusion = j[1]["sensor_fusion"];
           vector<CarState> other_cars;
 
-          vector<CarState> cars_lane_left;
-          vector<CarState> cars_lane_center;
-          vector<CarState> cars_lane_right;
-
           for (vector<double> entry : sensor_fusion)
           {
             auto c = CarState::create(entry);
             other_cars.push_back(c);
-
-            if (c.current_lane == Left)
-            {
-              cars_lane_left.push_back(c);
-            }
-            else if (c.current_lane == Center)
-            {
-              cars_lane_center.push_back(c);
-            }
-            else
-            {
-              cars_lane_right.push_back(c);
-            }
           }
 
-          //cout << "sensor_fusion #car " << other_cars.size() << endl;
+          road.update(other_cars);
 
-          // START PREDICTIONS
-
-          // Calc trajectories for each vehicle
-          //auto trajectory_predictions = Predictor::predict_trajectories(other_cars, map);
-
-          //cout << "trajector predictions end" << endl;
-
-          // END PREDICTIONS
-
-          // START Behavoir planning -------------
-          // Check for possible collisions - car is too close in the future
-          // Therefore iterate over all other vehciles and check if there
-          // might be a possible collision.
-          auto too_close = false;
-          auto target_speed = RefSpeed;
-          auto target_lane = car.current_lane;
-
-          for (auto other_car : other_cars)
-          {
-            if (other_car.is_in_lane(car))
-            {
-              // if other_car is in front of ego car and distance is lower than x meters
-              // then either slow down or try to change the lane.
-              if (other_car.is_in_front(car) && other_car.is_too_close(car))
-              {
-                too_close = true;
-                target_speed = other_car.speed;
-                break;
-              }
-            }
-          }
-
-          if (too_close)
-          {
-            // Check left
-            auto is_safe = true;
-
-            // We could either turn left or right. Check both possibilities.
-            // Check if we can safely change the lane, i.e. any car behind or in 
-            // front of the EGO car on the other line is inside the safety_buffer
-            switch (car.current_lane)
-            {
-              case Left:
-              {
-                for (auto other_car : cars_lane_center)
-                {
-                  if (other_car.is_in_front(car) && other_car.is_too_close(car))
-                  {
-                    is_safe = false;
-                  }
-
-                  if (is_safe)
-                  {
-                    target_lane = Center;
-                    target_speed = RefSpeed;
-                  }
-                }
-                break;
-              }
-              case Center:
-              {
-                // Go Left
-                for (auto other_car : cars_lane_left)
-                {
-                  if (other_car.is_in_front(car) && other_car.is_too_close(car))
-                  {
-                    is_safe = false;
-                  }
-                }
-
-                if (is_safe)
-                {
-                  target_lane = Left;
-                  target_speed = RefSpeed;
-                }
-                else
-                {
-                  // Go Right
-                  for (auto other_car : cars_lane_right)
-                  {
-                    if (other_car.is_in_front(car) && other_car.is_too_close(car))
-                    {
-                      is_safe = false;
-                    }
-                  }
-
-                  if (is_safe)
-                  {
-                    target_lane = Right;
-                    target_speed = RefSpeed;
-                  }
-                }
-
-                break;
-              }
-              case Right:
-              {
-                for (auto other_car : cars_lane_center)
-                {
-                  if (other_car.is_in_front(car) && other_car.is_too_close(car))
-                  {
-                    is_safe = false;
-                  }
-                }
-
-                if (is_safe)
-                {
-                  target_lane = Center;
-                  target_speed = RefSpeed;
-                }
-                break;
-              }
-            }
-          }
-
-          TrajectoryGenerator generator(map);
-          auto trajectory = generator.compute_trajectory(car, target_speed, target_lane);
-
-          //auto trajectory = behavior_planner.transition(trajectory_predictions, map);
-          // END BEHAVIOR PLANNING -------------
-
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
-
-          for (auto t : trajectory)
-          {
-            next_x_vals.push_back(t.x);
-            next_y_vals.push_back(t.y);
-            //next_x_vals.push_back(t[0]);
-            //next_y_vals.push_back(t[1]);
-          }
+          auto trajectory = behavior_planner.transition(other_cars, map, road);
 
           json msgJson;
-          msgJson["next_x"] = next_x_vals;
-          msgJson["next_y"] = next_y_vals;
+          msgJson["next_x"] = trajectory[0];
+          msgJson["next_y"] = trajectory[1];
 
           auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
