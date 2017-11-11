@@ -5,20 +5,11 @@ void Road::update(const std::vector<CarState>& other_cars)
   _other_cars = other_cars;
 }
 
-int Road::nearest_leading_in_lane(Lane lane) const
+CarState* Road::nearest_leading_in_lane(Lane lane) const
 {
-    // pointer to the nearest car in front of the EGOCAR
     CarState *nearest_leading = nullptr;
   
     auto cars_in_lane = all_cars_in_lane(lane);
-
-    std::string car_ids = std::accumulate(std::next(cars_in_lane.begin()), cars_in_lane.end(),
-      std::to_string(cars_in_lane[0].id), // start with first element
-      [](std::string a, CarState b) {
-      return a + ' ' + std::to_string(b.id);
-    });
-
-    std::cout << "cars " << car_ids << " in lane " << lane << "" << std::endl;
 
     for (unsigned int i = 0; i < cars_in_lane.size(); ++i)
     {
@@ -27,24 +18,19 @@ int Road::nearest_leading_in_lane(Lane lane) const
         if (nearest_leading == nullptr)
         {
           nearest_leading = &cars_in_lane[i];
-          //std::cout << "nearest leading " << nearest_leading->to_string() << "\negocar: " << _egocar.to_string() << std::endl;
         }
         else if (cars_in_lane[i].s < nearest_leading->s)
         {
           nearest_leading = &cars_in_lane[i];
-          //std::cout << "new nearest leading " << nearest_leading->to_string() << "\negocar: " << _egocar.to_string() << std::endl;
         }
       }
     }
 
-    auto id = (nearest_leading != nullptr) ? nearest_leading->id : -1;
-
-    return id;
+    return nearest_leading;
 }
 
-int Road::nearest_behind_in_lane(Lane lane) const
+CarState* Road::nearest_behind_in_lane(Lane lane) const
 {
-  // pointer to the nearest car in front of the EGOCAR
   CarState *nearest_behind = nullptr;
 
   auto cars_in_lane = all_cars_in_lane(lane);
@@ -64,7 +50,7 @@ int Road::nearest_behind_in_lane(Lane lane) const
     }
   }
 
-  return (nearest_behind != nullptr) ? nearest_behind->id : -1;
+  return nearest_behind;
 }
 
 std::vector<CarState> Road::all_cars_in_lane(Lane lane) const

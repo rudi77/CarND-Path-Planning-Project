@@ -1,15 +1,14 @@
 #include <iostream>
+#include <algorithm>
+#include <string>
 
 #include "behavior_planner.h"
 #include "map.h"
-#include <iostream>
-#include <string>
-
 #include "road.h"
 #include "car.h"
 #include "trajectory_generator.h"
 #include "cost_functions.h"
-#include <algorithm>
+
 
 std::string state_name(BehaviorPlanner::State state)
 {
@@ -66,31 +65,18 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::vector<C
   // Calculate one trajectory for each possible state
   for (auto possible_state_tuple : possible_states)
   {
-    auto state = std::get<0>(possible_state_tuple);
     auto target_lane = std::get<1>(possible_state_tuple);
     auto target_speed = OptimalSpeed;
 
     // Check if there is a leading car on the target lane.
-    // Check if it is too close.
-    // If too close reduce speed
-    auto leading_car_id = road.nearest_leading_in_lane(target_lane);
+    auto leading_car = road.nearest_leading_in_lane(target_lane);
 
-    if (leading_car_id != -1)
+    if (leading_car != nullptr)
     {
-      CarState leading_car(-1);
-
-      for (unsigned int i = 0; i < other_cars.size(); ++i)
+      // Reduce speed if it is too close 
+      if (leading_car->is_too_close(_car))
       {
-        if (other_cars[i].id == leading_car_id)
-        {
-          leading_car = other_cars[i];
-          break;
-        }
-      }
-
-      if (leading_car.is_too_close(_car))
-      {
-        target_speed = leading_car.speed;
+        target_speed = leading_car->speed;
       }
     }
 
