@@ -1,30 +1,18 @@
-[//]: # (Image References)
+# CarND-Path-Planning-Project
+In this project, the goal is to design a path planner that is able to create smooth, safe paths for the car to follow along a 3 lane highway with traffic. The path planner shall be able to keep inside its lane, avoid collisions with other cars, and pass slower moving traffic all by using localization, sensor fusion, and map data.
 
-[image1]: ./images/prediciton_module1.png "Overview"
-[image2]: ./images/prediction_module2.png "Input output"
+## Program Usage
+- Clone the project from (https://github.com/rudi77/CarND-Path-Planning-Project.git)
+- Install all dependencies, see "Dependencies" below.
+- Build the program, see "Basic Build Instructions" below
+- Run it: ./path_planning
 
-# CarND-Path-Planning-Project - UNDER CONSTRUCTION
-Self-Driving Car Engineer Nanodegree Program
-   
-## Prediction Module
-The prediction module takes a map and data from sensor fusion (RADAR,LIDAR etc) to generate predictions for what all other (moving) objects in the vincinity of our vehicle are likely to do. Predictions are presented by a set of possible trajectories together with their probabilities.
-![][image2]
+## Project Specifictions
 
-### Model-Based vs Data-Driven Approaches
-Two approaches could be used to predict the trajectories of __dynamic__ objects, either separately or together:
-#### Model-Based Approach
-Takes into account the physical capabilities of the objects as well as the constraints imposed by the road traffic laws and other restrictions.
 
-An model-based algorithm does the following
-```
-Foreach dynamic object:
-   1.) Identify common driving behavior, like change lane, turn left, cross street etc.
-   2.) Define a process model for each behavior
-   3.) Update beliefs by comparing the observation with the output of the process model
-   4.) Generate trajectory
-```
-#### Data-Driven Approach
-Black box and is trained on lots of data. Uses data to extract patterns which are hidden to model-based approaches.
+## Model
+
+-----------------
 
    
 ### Simulator.
