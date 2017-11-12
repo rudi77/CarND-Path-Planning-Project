@@ -6,9 +6,12 @@
 class JMT
 {
 public:
-  void set_boundaries(std::vector< double> start, std::vector <double> end, double T);
+  // Set boundary conditons and keeps the computed coefficients internally.
+  void set_boundaries(const std::vector< double>& start, const std::vector <double>& end, double T);
 
   double operator() (double x) const;
+
+  std::vector<double> operator() (const std::vector<double>& start, const std::vector<double>& end, double T);
 
   std::string to_string() const
   {

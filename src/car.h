@@ -74,59 +74,6 @@ public:
 
   std::vector<WayPoint> prev_waypoints;
 
-  CarState clone() const
-  {
-    CarState car(id);
-    car.x = this->x;
-    car.y = this->y;
-    car.s = this->s;
-    car.d = this->d;
-    car.speed = this->speed;
-    car.current_lane = this->current_lane;
-    car.end_path_s = this->end_path_s;
-    car.end_path_d = this->end_path_d;
-
-    if (car.prev_waypoints.size() > 0)
-    {
-      std::vector<double> prev_x;
-      std::vector<double> prev_y;
-
-      for (auto wp : car.prev_waypoints)
-      {
-        prev_x.push_back(wp.x);
-        prev_y.push_back(wp.y);
-      }
-
-      car.set_previous_waypoints(prev_x, prev_y);
-    }
-    return car;
-  }
-
-  bool operator==(const CarState& car) const
-  {
-    return
-      this->id == car.id &&
-      this->x == car.x &&
-      this->y == car.y &&
-      this->s == car.s &&
-      this->d == car.d &&
-      this->yaw == car.yaw &&
-      this->speed == car.speed &&
-      this->current_lane == car.current_lane;
-  }
-
-  std::string to_string() const
-  {
-    std::stringstream ss;
-    ss  << "id: " << id 
-        << " x: " << x << " y: " << y 
-        << " s: " << s << " d: " << d 
-        << " yaw: " << yaw << " v: " << speed 
-        << " end_s " << end_path_s << " end_d " << end_path_d
-        << " lane " << current_lane;
-    return ss.str();
-  }
-
   // checks whether a car is in this car's lane
   bool is_in_lane(const CarState& car) const
   {
@@ -161,10 +108,22 @@ public:
 
     if (too_close)
     {
-      std::cout << "car " << this->id << " is too close, dist " << distance << " : safety_buffer " << safety_buffer << std::endl;
+      std::cout << RED << "TOO CLOSE car: " << this->id <<  ", lane: " << lane_to_name(current_lane) << ", dist: " << distance << ", speed: " << this->speed << DEF << std::endl;
     }
 
     return too_close;
+  }
+
+  std::string to_string() const
+  {
+    std::stringstream ss;
+    ss << "id: " << id
+      << " x: " << x << " y: " << y
+      << " s: " << s << " d: " << d
+      << " yaw: " << yaw << " v: " << speed
+      << " end_s " << end_path_s << " end_d " << end_path_d
+      << " lane " << current_lane;
+    return ss.str();
   }
 
   // Creates a car from the sensor data.

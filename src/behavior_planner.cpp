@@ -9,7 +9,6 @@
 #include "trajectory_generator.h"
 #include "cost_functions.h"
 
-
 std::string state_name(BehaviorPlanner::State state)
 {
   switch (state)
@@ -28,7 +27,7 @@ void print_states_vs_costs(
 {
   assert(states.size() == costs_.size());
 
-  std::cout << "State" << "\t\t" "CurrentLane" << "\t\t" << "TargetLane" << "\t\t" "CurrentSpeed" << "\t\t" << "TargetSpeed" << "\t\t" << "Costs" << "\t\t" << "BestCost" <<"\n";
+  std::cout << CYAN << "State" << "\t\t" "CurrentLane" << "\t\t" << "TargetLane" << "\t\t" "CurrentSpeed" << "\t\t" << "TargetSpeed" << "\t\t" << "Costs" << "\t\t" << "BestCost" <<"\n" << DEF;
   std::cout << "========================================================================================================================================\n";
 
   for (unsigned int i = 0; i < states.size(); ++i)
@@ -41,11 +40,15 @@ void print_states_vs_costs(
     auto current_speed  = std::get<3>(costs_[i]);
     auto target_speed   = std::get<4>(costs_[i]);
 
-    std::cout << state_name(state)  
-              << "\t\t" << current_lane << "\t\t" << target_lane 
-              << "\t\t\t" << current_speed << "\t\t\t" << target_speed 
-              << "\t\t\t" << round2(cost, 2)
-              << "\t\t" << (bestCostIdx == i ? "Best" : "Rest") << "\n";
+    auto color = (bestCostIdx == i) ? GREEN : RED;
+
+    std::cout
+      << color 
+      << state_name(state)  
+      << "\t\t" << lane_to_name(current_lane) << "\t\t" << lane_to_name(target_lane)
+      << "\t\t\t" << current_speed << "\t\t\t" << target_speed 
+      << "\t\t\t" << round2(cost, 2)
+      << "\t\t" << (bestCostIdx == i ? "Best" : "Rest") << "\n" << DEF;
   }
 
   std::cout << std::endl;
@@ -53,32 +56,59 @@ void print_states_vs_costs(
 
 std::vector<std::vector<double>> BehaviorPlanner::transition(const std::vector<CarState>& other_cars, const Map& map, const Road& road)
 {
+  if (_car.current_lane != _target_lane || _car.prev_waypoints.size() >= 50)
+  {
+      std::vector<double> x_points;
+      std::vector<double> y_points;
+
+      for (auto wp : _car.prev_waypoints)
+      {
+        x_points.push_back(wp.x);
+        y_points.push_back(wp.y);
+      }
+
+      return { x_points, y_points };
+  }
+
   TrajectoryGenerator generator(map);
 
   // Get all possible states based on the current state and current line
-  auto possible_states = get_possible_states(_car.current_lane);
+  auto possible_states = get_possible_states(_car.current_lane, _target_lane);
 
-  std::vector<std::vector<CarState>> possible_trajectories;
+  std::vector<std::tuple<State, Lane>> possible_states_;
+  std::vector<std::vector<CarState>> possible_trajectories; 
   std::vector<std::tuple<double, Lane, Lane, double, double>> costs_;
   std::vector<double> costs;
 
   // Calculate one trajectory for each possible state
   for (auto possible_state_tuple : possible_states)
   {
-    auto target_lane = std::get<1>(possible_state_tuple);
+    auto state        = std::get<0>(possible_state_tuple);
+    auto target_lane  = std::get<1>(possible_state_tuple);
     auto target_speed = OptimalSpeed;
 
     // Check if there is a leading car on the target lane.
-    auto leading_car = road.nearest_leading_in_lane(target_lane);
-
-    if (leading_car != nullptr)
+    if (state == KeepLane)
     {
-      // Reduce speed if it is too close 
-      if (leading_car->is_too_close(_car))
+      auto leading_car = road.nearest_leading_in_lane(target_lane);
+      if (leading_car != nullptr && leading_car->is_too_close(_car))
       {
-        target_speed = leading_car->speed;
+        if (state == KeepLane)
+        {
+          target_speed = leading_car->speed;
+        }
       }
     }
+    else
+    {
+      if (!road.is_lane_safe(target_lane))
+      {
+        //std::cout << YELLOW << "NewState: " << state_name(state) << ", lane change not safe, current lane " << _car.current_lane << ", target lane " << target_lane << DEF << std::endl;
+        continue;
+      }
+    }
+
+    possible_states_.push_back(possible_state_tuple);
 
     auto possible_trajectory = generator.compute_trajectory(_car, target_speed, target_lane);
     auto cost_total = Costs::calc_cost(possible_trajectory, other_cars, target_speed, _car.current_lane, target_lane);
@@ -93,13 +123,28 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::vector<C
   auto min_idx = std::distance(costs.begin(), min_element(costs.begin(), costs.end()));
   auto best_trajectory = possible_trajectories[min_idx];
 
-  print_states_vs_costs(possible_states, costs_, min_idx);
+  print_states_vs_costs(possible_states_, costs_, min_idx);
 
-  _currentState = std::get<0>(possible_states[min_idx]);
+  _currentState   = std::get<0>(possible_states[min_idx]);
+  _target_lane    = std::get<2>(costs_[min_idx]);
   _car.speed_prev = best_trajectory[best_trajectory.size() - 1].speed;
 
   // Set new state and return the trajectory with min(cost) 
   return to_xy_vectors(best_trajectory);
+}
+
+std::vector<std::tuple<BehaviorPlanner::State, Lane>> BehaviorPlanner::get_possible_states(Lane current_lane, Lane target_lane) const
+{
+  // We haven't reached our target lane so far. Stay in the current state
+  // until current_lane is target_lane
+  //if (current_lane != target_lane)
+  //{
+  //  std::cout << YELLOW << " STAY state: " << state_name(_currentState) << ", current_lane: " << current_lane << ", target_lane: " << target_lane << std::endl;
+
+  //  return { std::make_tuple(_currentState, target_lane) };
+  //}
+
+  return get_possible_states(current_lane);
 }
 
 std::vector<std::tuple<BehaviorPlanner::State,Lane>> BehaviorPlanner::get_possible_states(Lane current_lane) const
@@ -149,12 +194,20 @@ std::vector<std::tuple<BehaviorPlanner::State,Lane>> BehaviorPlanner::get_possib
 
       if (current_lane == Center)
       {
-        possible_states = { std::make_tuple(ChangeLaneLeft, Left) };
+        possible_states = 
+        { 
+          std::make_tuple(ChangeLaneLeft, Left),
+          std::make_tuple(KeepLane, current_lane),
+        };
       }
 
       if (current_lane == Right)
       {
-        possible_states = { std::make_tuple(ChangeLaneLeft, Center) };
+        possible_states = 
+        { 
+          std::make_tuple(ChangeLaneLeft, Center),
+          std::make_tuple(KeepLane, current_lane)
+        };
       }
 
       break;
@@ -163,12 +216,20 @@ std::vector<std::tuple<BehaviorPlanner::State,Lane>> BehaviorPlanner::get_possib
     {
       if (current_lane == Left)
       {
-        possible_states = { std::make_tuple(ChangeLaneRight, Center) };
+        possible_states =
+        {
+          std::make_tuple(ChangeLaneRight, Center),
+          std::make_tuple(KeepLane, current_lane)
+        };
       }
 
       if (current_lane == Center)
       {
-        possible_states = { std::make_tuple(ChangeLaneRight, Right) };
+        possible_states = 
+        { 
+          std::make_tuple(ChangeLaneRight, Right),
+          std::make_tuple(KeepLane, current_lane)
+        };
       }
 
       if (current_lane == Right)

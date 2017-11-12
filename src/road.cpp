@@ -5,6 +5,28 @@ void Road::update(const std::vector<CarState>& other_cars)
   _other_cars = other_cars;
 }
 
+bool Road::is_lane_safe(Lane lane) const
+{
+  auto nearest_leading  = nearest_leading_in_lane(lane);
+  auto nearest_behind   = nearest_behind_in_lane(lane);
+
+  auto leading_too_close = false;
+  auto behind_too_close = false;
+
+
+  if (nearest_leading != nullptr)
+  {
+    leading_too_close = nearest_leading->is_too_close(_egocar);
+  }
+
+  if (nearest_behind != nullptr)
+  {
+    behind_too_close = _egocar.is_too_close(*nearest_behind, 15);
+  }
+
+  return !leading_too_close && !behind_too_close;
+}
+
 CarState* Road::nearest_leading_in_lane(Lane lane) const
 {
     CarState *nearest_leading = nullptr;

@@ -5,7 +5,7 @@ using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-void JMT::set_boundaries(vector<double> start, vector<double> end, double T)
+void JMT::set_boundaries(const vector<double>& start, const vector<double>& end, double T)
 {
   /*
   Calculate the Jerk Minimizing Trajectory that connects the initial state
@@ -31,12 +31,12 @@ void JMT::set_boundaries(vector<double> start, vector<double> end, double T)
   [0.0, 10.0, 0.0, 0.0, 0.0, 0.0]
   */
 
-  MatrixXd A = MatrixXd(3, 3);
-  A <<  T*T*T,  T*T*T*T,  T*T*T*T*T,
-        3*T*T,  4*T*T*T,  5*T*T*T*T,
-        6*T,    12*T*T,   20*T*T*T;
+  auto A = MatrixXd(3, 3);
+  A <<  T*T*T, T*T*T*T, T*T*T*T*T,
+        3*T*T, 4*T*T*T, 5*T*T*T*T,
+        6*T,   12*T*T,  20*T*T*T;
 
-  MatrixXd B = MatrixXd(3, 1);
+  auto B = MatrixXd(3, 1);
   B <<  end[0] - (start[0] + start[1] * T + .5*start[2] * T*T),
         end[1] - (start[1] + start[2] * T),
         end[2] - start[2];
@@ -48,7 +48,7 @@ void JMT::set_boundaries(vector<double> start, vector<double> end, double T)
   // Overwrite previous coefficients.
   _coeffs = { start[0], start[1], .5*start[2] };
 
-  for (int i = 0; i < C.size(); i++)
+  for (unsigned int i = 0; i < C.size(); i++)
   {
     _coeffs.push_back(C.data()[i]);
   }
@@ -56,13 +56,14 @@ void JMT::set_boundaries(vector<double> start, vector<double> end, double T)
   assert(_coeffs.size() == 6);
 }
 
-double JMT::operator() (double x) const 
+double JMT::operator() (double x) const
 {
-  if (_coeffs.size() != 6)
-  {
-    
-  }
-
   // Computes the polynomial with the previously computed coefficients
-  return _coeffs[0] + _coeffs[1]*x + _coeffs[2]*x*x + _coeffs[3]*x*x*x + _coeffs[4]*x*x*x*x + _coeffs[5]*x*x*x*x*x;
+  return _coeffs[0] + _coeffs[1] * x + _coeffs[2] * x*x + _coeffs[3] * x*x*x + _coeffs[4] * x*x*x*x + _coeffs[5] * x*x*x*x*x;
+}
+
+vector<double> JMT::operator()(const vector<double>& start, const vector<double>& end, double T)
+{
+  set_boundaries(start, end, T);
+  return _coeffs;
 }

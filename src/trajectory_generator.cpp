@@ -1,9 +1,11 @@
+#include <cassert>
+#include <iostream>
+
 #include "trajectory_generator.h"
 #include "car.h"
 #include "helpers.h"
-#include <cassert>
 #include "spline.h"
-#include <iostream>
+#include "jmt.h"
 
 using namespace std;
 
@@ -53,11 +55,71 @@ vector<CarState> TrajectoryGenerator::compute_trajectory(const CarState& car, do
     anchor_points_y.push_back(ref_car_y);
   }
 
+  // starting point in our car's locale coordinate system
+  auto x_add_on = 0.0;
+  auto maxAcc = AccMax - 1;
+  auto current_speed = car.speed_prev;
+  auto N = 50;
+
   // Now add evenly spaced anchor points in Frenet coordinates
-  auto start_s = 30;
-  for (auto i = start_s; i <= 90; i += 30)
+  if (car.current_lane == target_lane)
   {
-    auto anchor_point = _map.get_xy(car.s + i, 2 + 4 * static_cast<int>(target_lane));
+    //cout << "Keep Lane car_s: " << car.s << " end_path_s " << car.end_path_s << " current lane " << car.current_lane << " target lane " << target_lane << endl;
+
+    auto start_s = 30;
+    auto s = car.s > car.end_path_s ? car.s : car.end_path_s;
+    for (auto i = start_s; i <= 90; i += 30)
+    {
+      auto anchor_point = _map.get_xy(s + i, 2 + 4 * static_cast<int>(target_lane));
+
+      anchor_points_x.push_back(anchor_point[0]);
+      anchor_points_y.push_back(anchor_point[1]);
+    }
+  }
+  else
+  {
+    //cout << "Change Lane car_s: " << car.s << " end_path_s " << car.end_path_s << " current lane " << car.current_lane << " target lane " << target_lane << endl;
+
+    auto T = 2.5;
+
+    N = T / DeltaT + car.prev_waypoints.size();
+
+    // Use JMT to generate possible trajectories
+    auto s = car.prev_waypoints.size() == 0 ? car.s : car.end_path_s;
+    auto d = car.prev_waypoints.size() == 0 ? car.d : car.end_path_d;
+
+    // how far can we go in T seconds
+    // target_speed = target_speed == OptimalSpeed ? target_speed - 1 : target_speed;
+    auto s_end_pos = pos_new(s, target_speed / Ms2Mps, 0.0, T);
+
+    vector<double> start_s  = { s, current_speed / Ms2Mps, 0.0 };
+    vector<double> end_s    = { s_end_pos, target_speed / Ms2Mps, 0.0 };
+    vector<double> start_d  = { d, 0.0, 0.0};
+    vector<double> end_d    = { (2 + 4 * static_cast<double>(target_lane)), 0.0, 0.0 };
+
+    auto coeff_s = JMT()(start_s, end_s, T);
+    auto coeff_d = JMT()(start_d, end_d, T);
+
+    auto poly_s = to_polynom(coeff_s);
+    auto poly_d = to_polynom(coeff_d);
+
+
+    // get four evenly spaced points and use them as anchor points
+    auto t_step = 0.5;
+    auto t = 0.5;
+    for (auto i = 1; i <= T / t_step; ++i)
+    {
+      auto next_s = poly_s(t);
+      auto next_d = poly_d(t);
+      auto anchor_point = _map.get_xy(next_s, next_d);
+
+      anchor_points_x.push_back(anchor_point[0]);
+      anchor_points_y.push_back(anchor_point[1]);
+
+      t += t_step;
+    }
+
+    auto anchor_point = _map.get_xy(s_end_pos + 30, 2 + 4 * static_cast<int>(target_lane));
     anchor_points_x.push_back(anchor_point[0]);
     anchor_points_y.push_back(anchor_point[1]);
   }
@@ -71,9 +133,9 @@ vector<CarState> TrajectoryGenerator::compute_trajectory(const CarState& car, do
     anchor_points_y[i] = shift_x * sin(0 - ref_car_yaw) + shift_y * cos(0 - ref_car_yaw);
   }
 
+
   // Creating spline through the anchor points
   tk::spline s;
-
   s.set_points(anchor_points_x, anchor_points_y);
 
   vector<CarState> trajectory;
@@ -89,16 +151,13 @@ vector<CarState> TrajectoryGenerator::compute_trajectory(const CarState& car, do
     trajectory.push_back(next_car_state);
   }
 
-  // starting point in our car's locale coordinate system
-  auto x_add_on = 0.0;
-  auto maxAcc = AccMax-1;
-  auto current_speed = car.speed_prev;
+  //N = N - car.prev_waypoints.size();
 
-  for (auto i = 1; i <= 50 - car.prev_waypoints.size(); ++i)
+  for (auto i = 1; i <= N - car.prev_waypoints.size(); ++i)
   {
-
     auto a = maxAcc;
     
+    // reduce speed if it is above target_speed
     if (current_speed > target_speed)
     {
       a = -1 * a;
@@ -128,8 +187,26 @@ vector<CarState> TrajectoryGenerator::compute_trajectory(const CarState& car, do
     trajectory.push_back(next_car_state);
   }
 
-  assert(trajectory.size() == 50);
+  //assert(trajectory.size() == N);
 
   return trajectory;
+}
+
+vector<double> TrajectoryGenerator::perturb_data(vector<double> means, vector<double> sigmas)
+{
+  assert(means.size() == sigmas.size());
+
+  random_device rd;
+  mt19937 e2(rd());
+
+  vector<double> new_means;
+
+  for (unsigned int i = 0; i < sigmas.size(); ++i)
+  {
+    normal_distribution<> gauss(means[i], sigmas[i]);
+    new_means.push_back(gauss(e2));
+  }
+
+  return new_means;
 }
 

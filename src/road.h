@@ -10,6 +10,8 @@ public:
 
   void update(const std::vector<CarState>& other_cars);
 
+  bool is_lane_safe(Lane lane) const;
+
   CarState* nearest_leading_in_lane(Lane lane) const;
 
   CarState* nearest_behind_in_lane(Lane lane) const;

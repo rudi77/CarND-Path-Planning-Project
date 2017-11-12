@@ -14,4 +14,6 @@ public:
 
 private:
   Map _map;
+
+  static std::vector<double> perturb_data(std::vector<double> means, std::vector<double> sigmas);
 };

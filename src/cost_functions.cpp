@@ -36,8 +36,8 @@ double Costs::calc_cost(
   const Lane current_lane,
   const Lane target_lane)
 {
-  auto speed_cost = ::speed_cost(target_speed) * 1.0;
-  auto lane_change_cost = ::lane_change_cost(current_lane, target_lane) * 0.5;
+  auto speed_cost = ::speed_cost(target_speed) * 100;
+  auto lane_change_cost = ::lane_change_cost(current_lane, target_lane) * 10;
 
   //std::cout << "TargetLane " << target_lane << " CurrentLane " << current_lane << " TargetSpeed " << target_speed 
   //          << " LaneChangeCost " << lane_change_cost << " SpeedCost " << speed_cost << " CostTotal " 
