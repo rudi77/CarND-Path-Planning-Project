@@ -35,7 +35,6 @@ private:
   Lane _target_lane;
 
   std::vector<std::tuple<State,Lane>> get_possible_states(Lane current_lane) const;
-  std::vector<std::tuple<State, Lane>> get_possible_states(Lane current_lane, Lane target_lane) const;
 };
 
 

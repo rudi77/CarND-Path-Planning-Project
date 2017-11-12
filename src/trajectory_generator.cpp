@@ -80,7 +80,7 @@ vector<CarState> TrajectoryGenerator::compute_trajectory(const CarState& car, do
   {
     //cout << "Change Lane car_s: " << car.s << " end_path_s " << car.end_path_s << " current lane " << car.current_lane << " target lane " << target_lane << endl;
 
-    auto T = 2.5;
+    auto T = 2.0;
 
     N = T / DeltaT + car.prev_waypoints.size();
 
@@ -89,7 +89,7 @@ vector<CarState> TrajectoryGenerator::compute_trajectory(const CarState& car, do
     auto d = car.prev_waypoints.size() == 0 ? car.d : car.end_path_d;
 
     // how far can we go in T seconds
-    // target_speed = target_speed == OptimalSpeed ? target_speed - 1 : target_speed;
+    target_speed = target_speed == OptimalSpeed ? target_speed - 1 : target_speed;
     auto s_end_pos = pos_new(s, target_speed / Ms2Mps, 0.0, T);
 
     vector<double> start_s  = { s, current_speed / Ms2Mps, 0.0 };
