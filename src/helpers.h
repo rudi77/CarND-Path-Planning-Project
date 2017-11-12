@@ -47,8 +47,9 @@ const int EGOCAR = 0xDEADBEEF;
 
 const double MaxS           = 6945.554;
 const double SpeedLimit     = 50.0;
-const double SpeedBuffer    = 0.5;
-const double OptimalSpeed   = 49.5;
+const double SpeedBuffer    = 1.0;
+const double OptimalSpeed   = 49.0;
+const double Horizon        = 1.0;
 const double DeltaT         = 0.02;
 const double DeltaTT        = 0.02*0.02;
 const double AccMax         = 10.0;

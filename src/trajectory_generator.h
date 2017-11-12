@@ -14,6 +14,21 @@ public:
 
 private:
   Map _map;
+  
+  void add_anchor_points_keep_lane(
+    const CarState& car, 
+    Lane target_lane, 
+    std::vector<double>& anchor_points_x, 
+    std::vector<double>& anchor_points_y);
+
+  void add_anchor_points_change_lane(
+    const CarState& car,
+    double& target_speed,
+    double current_speed,
+    double& N,
+    Lane target_lane, 
+    std::vector<double>& anchor_points_x,
+    std::vector<double>& anchor_points_y);
 
   static std::vector<double> perturb_data(std::vector<double> means, std::vector<double> sigmas);
 };

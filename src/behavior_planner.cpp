@@ -119,9 +119,9 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::vector<C
   auto min_idx = std::distance(costs.begin(), min_element(costs.begin(), costs.end()));
   auto best_trajectory = possible_trajectories[min_idx];
 
-  //print_states_vs_costs(possible_states_, costs_, min_idx);
+  print_states_vs_costs(possible_states_, costs_, min_idx);
 
-  _currentState   = std::get<0>(possible_states[min_idx]);
+  _currentState   = std::get<0>(possible_states_[min_idx]);
   _target_lane    = std::get<2>(costs_[min_idx]);
   _car.speed_prev = best_trajectory[best_trajectory.size() - 1].speed;
 

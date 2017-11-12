@@ -95,7 +95,7 @@ public:
     auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * 0.02 * this->speed;
     auto car_s = car.prev_waypoints.size() > 0 ? car.end_path_s : car.s;
 
-    return (this->s + check_car_s) > car_s;
+    return (this->s + check_car_s) < car_s;
   }
 
   // checks whether another car is to too close.
@@ -104,12 +104,12 @@ public:
     auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * 0.02 * this->speed;
     auto car_s = car.prev_waypoints.size() > 0 ? car.end_path_s : car.s;
     auto distance = (this->s + check_car_s) - car_s;
-    auto too_close = 0 < distance && distance < safety_buffer;
+    auto too_close = -safety_buffer < distance && distance < safety_buffer;
 
-    if (too_close)
-    {
-      std::cout << RED << "TOO CLOSE car: " << this->id <<  ", lane: " << lane_to_name(current_lane) << ", dist: " << distance << ", speed: " << this->speed << DEF << std::endl;
-    }
+    //if (too_close)
+    //{
+    //  std::cout << RED << "TOO CLOSE car: " << this->id <<  ", lane: " << lane_to_name(current_lane) << ", dist: " << distance << ", speed: " << this->speed << DEF << std::endl;
+    //}
 
     return too_close;
   }
