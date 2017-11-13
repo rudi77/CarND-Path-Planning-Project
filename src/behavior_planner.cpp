@@ -93,6 +93,7 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::vector<C
       auto leading_car = road.nearest_leading_in_lane(target_lane);
       if (leading_car != nullptr && leading_car->is_too_close(_car))
       {
+        std::cout << "CAR IN FRONT " << leading_car->to_string() << std::endl;
         target_speed = leading_car->speed;
       }
     }
@@ -107,8 +108,7 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::vector<C
     possible_states_.push_back(possible_state_tuple);
 
     auto possible_trajectory = generator.compute_trajectory(_car, target_speed, target_lane);
-    auto cost_total = Costs::calc_cost(possible_trajectory, other_cars, target_speed, _car.current_lane, target_lane);
-
+    auto cost_total = Costs::calc_cost(_car, possible_trajectory, road, target_speed, _car.current_lane, target_lane, _car.prev_waypoints.size());
     possible_trajectories.push_back(possible_trajectory);
     costs.push_back( cost_total );
 

@@ -96,7 +96,7 @@ vector<CarState> TrajectoryGenerator::compute_trajectory(const CarState& car, do
 
   // starting point in our car's locale coordinate system
   auto x_add_on = 0.0;
-  auto maxAcc = AccMax - 1;
+  auto maxAcc = AccMax;
 
   for (auto i = 1; i <= N - car.prev_waypoints.size(); ++i)
   {
@@ -161,21 +161,56 @@ void TrajectoryGenerator::add_anchor_points_change_lane(
   vector<double>& anchor_points_y)
 {
   auto T = 2.0;
-
+  auto a = AccMax;
+  auto a_end = AccMax;
   N = T / DeltaT + car.prev_waypoints.size();
 
   // Use JMT to generate possible trajectories
   auto s = car.prev_waypoints.size() == 0 ? car.s : car.end_path_s;
   auto d = car.prev_waypoints.size() == 0 ? car.d : car.end_path_d;
 
-  // how far can we go in T seconds
+  if (target_speed >= OptimalSpeed)
+  {
+    target_speed = OptimalSpeed - 1.0;
+    a = 0.0;
+    a_end = 0.0;
+  }
+  else
+  {
+    // check if we can reach the target_speed within
+    // the given T
+    if (current_speed < target_speed)
+    {
+      auto v = current_speed / Ms2Mps + a * T;
+      if (v < target_speed)
+      {
+        target_speed = v;
+      }
+      else
+      {
+        if (v > OptimalSpeed - 1.0)
+        {
+          target_speed = OptimalSpeed - 1.0;
+          a_end = 0.0;
+        }
+      }
+    }
+  }
+
+  // how fast can we go?
+
+  // how far can we go in T seconds?
   auto s_end_pos = pos_new(s, target_speed / Ms2Mps, 0.0, T);
   auto d_end_pos = 2 + 4 * static_cast<double>(target_lane);
 
-  vector<double> start_s  = { s, current_speed / Ms2Mps, 0.0 };
-  vector<double> end_s    = { s_end_pos, target_speed / Ms2Mps, 0.0 };
+  vector<double> start_s  = { s, current_speed / Ms2Mps, a };
+  vector<double> end_s    = { s_end_pos, target_speed / Ms2Mps, a_end };
   vector<double> start_d  = { d, 0.0, 0.0 };
   vector<double> end_d    = { d_end_pos, 0.0, 0.0 };
+
+
+  std::cout << "JMT: " << list_to_string(start_s) << ", " << list_to_string(end_s) << std::endl;
+  std::cout << "JMT: " << list_to_string(start_d) << ", " << list_to_string(end_d) << std::endl;
 
   auto coeff_s = JMT()(start_s, end_s, T);
   auto coeff_d = JMT()(start_d, end_d, T);

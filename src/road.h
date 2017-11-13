@@ -8,6 +8,8 @@ class Road
 public:
   explicit Road(CarState& egocar) : _egocar(egocar) {}
 
+  const std::vector<CarState>& other_cars() const { return _other_cars; }
+
   void update(const std::vector<CarState>& other_cars);
 
   bool is_lane_safe(Lane lane) const;

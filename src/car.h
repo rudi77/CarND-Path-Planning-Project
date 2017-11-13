@@ -11,6 +11,12 @@
 class CarState
 {
 public:
+  struct collider 
+  {
+    bool collision; // is there a collision?
+    int  time;      // time collision happens
+  };
+
   // This constructor is used by the ego car
   explicit CarState(int id_) 
     : id(id_), 
@@ -60,7 +66,6 @@ public:
   }
 
   int id;
-
   double x;
   double y;
   double s;
@@ -71,8 +76,42 @@ public:
   Lane current_lane;
   double end_path_s;
   double end_path_d;
+  double accel = 0.0;
 
   std::vector<WayPoint> prev_waypoints;
+
+  CarState clone(bool with_prev_wps = false) const
+  {
+    CarState car(id);
+    car.x = this->x;
+    car.y = this->y;
+    car.s = this->s;
+    car.d = this->d;
+    car.speed = this->speed;
+    car.speed_prev = this->speed_prev;
+    car.current_lane = this->current_lane;
+    car.end_path_s = this->end_path_s;
+    car.end_path_d = this->end_path_d;
+
+    if (with_prev_wps)
+    {
+      if (car.prev_waypoints.size() > 0)
+      {
+        std::vector<double> prev_x;
+        std::vector<double> prev_y;
+
+        for (auto wp : car.prev_waypoints)
+        {
+          prev_x.push_back(wp.x);
+          prev_y.push_back(wp.y);
+        }
+
+        car.set_previous_waypoints(prev_x, prev_y);
+      }
+    }
+
+    return car;
+  }
 
   // checks whether a car is in this car's lane
   bool is_in_lane(const CarState& car) const
@@ -112,6 +151,56 @@ public:
     //}
 
     return too_close;
+  }
+
+  std::tuple<Lane, double, double, double> state_at(double t) {
+
+    /*
+    Predicts state of vehicle in t seconds (assuming constant acceleration)
+    */
+    auto s = this->s + this->speed * t + this->accel * t * t / 2;
+    auto v = this->speed + this->accel * t;
+
+    return std::make_tuple(this->current_lane, s, v, this->accel);
+  }
+
+  bool collides_with(CarState other, double at_time) const
+  {
+    auto state_at_t = other.state_at(at_time);
+    auto lane       = std::get<0>(state_at_t);
+    auto s_at_t     = std::get<1>(state_at_t);
+
+    auto isCollision = (lane == this->current_lane) && abs(s_at_t - this->s) < 2 * Vehicle_Radius;
+
+    if (isCollision)
+    {
+      std::cout << "OtherCar: " << other.id << " at: " << at_time << " s: " << s_at_t << " lane:" << lane << std::endl;
+      std::cout << "Car: "      << this->id << " at: " << at_time << " s: " << this->s << " lane: " << this->current_lane << std::endl;
+    }
+
+    return isCollision;
+  }
+
+
+  collider will_collide_with(const CarState& other, int timesteps, double start_time) const
+  {
+    collider collider_temp;
+    collider_temp.collision = false;
+    collider_temp.time = -1;
+
+    for (auto t = 0; t < timesteps; ++t)
+    {
+      if (collides_with(other, start_time))
+      {
+        collider_temp.collision = true;
+        collider_temp.time = t;
+        return collider_temp;
+      }
+
+      start_time += DeltaT;
+    }
+
+    return collider_temp;
   }
 
   std::string to_string() const

@@ -24,7 +24,7 @@ bool Road::is_lane_safe(Lane lane) const
 
   if (nearest_behind != nullptr)
   {
-    behind_too_close = nearest_behind->is_too_close(_egocar, 15);
+    behind_too_close = nearest_behind->is_too_close(_egocar, 10);
 
     if (behind_too_close)
     {
