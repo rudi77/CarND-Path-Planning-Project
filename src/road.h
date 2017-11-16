@@ -14,11 +14,11 @@ public:
 
   bool is_lane_safe(Lane lane) const;
 
-  CarState* nearest_leading_in_lane(Lane lane) const;
+  const CarState* nearest_leading_in_lane(Lane lane) const;
 
-  CarState* nearest_behind_in_lane(Lane lane) const;
+  const CarState* nearest_behind_in_lane(Lane lane) const;
 
-  std::vector<CarState> all_cars_in_lane(Lane lane) const;
+  std::vector<const CarState*> all_cars_in_lane(Lane lane) const;
 
 private:
   CarState& _egocar;

@@ -43,7 +43,7 @@ const Color::Modifier CYAN(Color::FG_CYAN);
 const Color::Modifier DEF(Color::FG_DEFAULT);
 
 
-const int EGOCAR = 0xDEADBEEF;
+const unsigned int EGOCAR = 0xDEADBEEF;
 
 const double MaxS           = 6945.554;
 const double SpeedLimit     = 50.0;

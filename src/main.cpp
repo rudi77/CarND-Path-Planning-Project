@@ -100,8 +100,7 @@ int main() {
 
           for (vector<double> entry : sensor_fusion)
           {
-            auto c = CarState::create(entry);
-            other_cars.push_back(c);
+            other_cars.push_back(CarState::create(entry));
           }
 
           road.update(other_cars);

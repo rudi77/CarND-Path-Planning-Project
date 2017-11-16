@@ -209,8 +209,8 @@ void TrajectoryGenerator::add_anchor_points_change_lane(
   vector<double> end_d    = { d_end_pos, 0.0, 0.0 };
 
 
-  std::cout << "JMT: " << list_to_string(start_s) << ", " << list_to_string(end_s) << std::endl;
-  std::cout << "JMT: " << list_to_string(start_d) << ", " << list_to_string(end_d) << std::endl;
+  //std::cout << "JMT: " << list_to_string(start_s) << ", " << list_to_string(end_s) << std::endl;
+  //std::cout << "JMT: " << list_to_string(start_d) << ", " << list_to_string(end_d) << std::endl;
 
   auto coeff_s = JMT()(start_s, end_s, T);
   auto coeff_d = JMT()(start_d, end_d, T);

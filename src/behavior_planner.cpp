@@ -93,7 +93,7 @@ std::vector<std::vector<double>> BehaviorPlanner::transition(const std::vector<C
       auto leading_car = road.nearest_leading_in_lane(target_lane);
       if (leading_car != nullptr && leading_car->is_too_close(_car))
       {
-        std::cout << "CAR IN FRONT " << leading_car->to_string() << std::endl;
+        std::cout << "KeepLane:: CAR IN FRONT " << leading_car->to_string() << std::endl;
         target_speed = leading_car->speed;
       }
     }
