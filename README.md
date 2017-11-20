@@ -16,8 +16,19 @@ A valid trajectory must meet the following specifications
 - The car stays in its lane, except for the time between changing lanes.
 - The car is able to change lanes. The car is able to smoothly change lanes when it makes sense to do so, such as when behind a slower moving car and an adjacent lane is clear of other traffic.
 
+## Code Model
+The Path Planner consists of the following classes:
+- __Map__:
+- __Road__:
+- __CarState__:
+- __BehaviorPlanner__:
+- __TrajectoryGenerator__:
+- __JMT__:
+## Path Planning Pipeline
 
-## Model
+My Highway Path Planner works as follows:
+Telemetry data like the localication data of the reference car aka egocar and the sensor fusion data containing the information
+about all other vehicles around the egocar on the same side of the road is received periodically from the simulator. The state of the egocar as well as the states of the other vehicles is stored in __CarState__ objects.
 
 -----------------
 
