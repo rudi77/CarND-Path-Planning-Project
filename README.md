@@ -8,6 +8,13 @@ In this project, the goal is to design a path planner that is able to create smo
 - Run it: ./path_planning
 
 ## Project Specifictions
+A valid trajectory must meet the following specifications
+- The car is able to drive at least 4.32 miles without incident. Incidents include exceeding acceleration/jerk/speed, collision, and driving outside of the lanes.
+- The car drives according to the speed limit which is 50.0 Mph.The car shall not drive faster than the speed limit but also not much slower.
+- Max Acceleration and Jerk are not exceeded. The car shall not exceed a total acceleration of 10 m/s^2 and a jerk of 10 m/s^3.
+- The car shall not collide with other vehicles on the high-way.
+- The car stays in its lane, except for the time between changing lanes.
+- The car is able to change lanes. The car is able to smoothly change lanes when it makes sense to do so, such as when behind a slower moving car and an adjacent lane is clear of other traffic.
 
 
 ## Model
