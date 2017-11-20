@@ -160,10 +160,10 @@ void TrajectoryGenerator::add_anchor_points_change_lane(
   vector<double>& anchor_points_x,
   vector<double>& anchor_points_y)
 {
-  auto T = 2.0;
+  auto T = 2.5;
   auto a = AccMax;
   auto a_end = AccMax;
-  N = T / DeltaT + car.prev_waypoints.size();
+  N = 2.0 / DeltaT + car.prev_waypoints.size();
 
   // Use JMT to generate possible trajectories
   auto s = car.prev_waypoints.size() == 0 ? car.s : car.end_path_s;
