@@ -167,11 +167,11 @@ public:
 
     auto isCollision = (lane == this->current_lane) && abs(s_at_t - this->s) < 2 * Vehicle_Radius;
 
-    if (isCollision)
-    {
-      std::cout << "OtherCar: " << other.id << " at: " << at_time << " s: " << s_at_t << " lane:" << lane << std::endl;
-      std::cout << "Car: "      << this->id << " at: " << at_time << " s: " << this->s << " lane: " << this->current_lane << std::endl;
-    }
+    //if (isCollision)
+    //{
+    //  std::cout << "OtherCar: " << other.id << " at: " << at_time << " s: " << s_at_t << " lane:" << lane << std::endl;
+    //  std::cout << "Car: "      << this->id << " at: " << at_time << " s: " << this->s << " lane: " << this->current_lane << std::endl;
+    //}
 
     return isCollision;
   }

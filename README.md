@@ -22,7 +22,9 @@ The Path Planner consists of the following classes:
 
 - __CarState__: Holds the state of a car. It contains its global _x_,_y_ coordinates, the _yaw_ angle, its current _speed_ and its frenet coordinates _s_ and _d_.
 - __Map__: Contains all waypoints of the highway track. The way points are stored in a csv file and read at the beginning. The Map class also contains functions for converting global coordinates into frenet coordinates and vice versa.
+
 	<a href="url"><img src="./images/highway.png" height="240" width="380" ></a>
+
 - __Road__: Model the actual environment of the egocar. It contains all vehicles detected by the sensor fusion module as well as the current state of the egocar.
 - __BehaviorPlanner__: The BehaviorPlanner is responsible for the tactical path planning. This means that it generates a feasible, valid and safe trajectory for the next few seconds. It is implemented as a simple state machine comprising three differen states:
 	- KeepLane state: In this state the car shall stay on the current lane.
@@ -36,8 +38,9 @@ The Path Planner consists of the following classes:
 
 	The BehaviorPlanner is called periodically. It derives possible new states from the current state and for each possible new state it generates a trajectory. For each generated trajectory a certain cost value is calculated. The trajectory with the minimal cost value is then taken as the next trajectory and is returned to the simulator. 
 
-- __TrajectoryGenerator__:
-- __JMT__:
+- __TrajectoryGenerator__: The TrajectorGenerator generates trajectories. It takes the current egocar's state, the target speed and the target lane as input parameters and computes a trajectory. The trajectory is computed in frenet coordinates but finally transformed into global coordinates as its is required by the simulator. 
+
+- __CostFunction__:
 
 ## Path Planning Pipeline
 

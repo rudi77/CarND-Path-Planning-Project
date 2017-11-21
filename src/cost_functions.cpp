@@ -43,7 +43,7 @@ double collision_cost(int prev_waypoints, const std::vector<CarState>& trajector
       auto isCollision = trajectory[i].collides_with(carState, prev_waypoints*DeltaT + i*DeltaT);
       if (isCollision)
       {
-        std::cout << "COLLSION COST END WITH COLLISION" << std::endl;
+        //std::cout << "COLLSION COST END WITH COLLISION" << std::endl;
         return 1.0;
       }
     }
@@ -55,7 +55,7 @@ double collision_cost(int prev_waypoints, const std::vector<CarState>& trajector
 double free_lane_cost(const CarState& car, const Road& road, Lane target_lane)
 {
   auto nearest_leading = road.nearest_leading_in_lane(target_lane);
-  return (nearest_leading != nullptr && nearest_leading->is_too_close(car, 50)) ? 1.0 : 0.0;
+  return (nearest_leading != nullptr && nearest_leading->is_too_close(car, 70)) ? 1.0 : 0.0;
 }
 
 double not_in_center_lane_cost(Lane target_lane)
@@ -72,11 +72,11 @@ double Costs::calc_cost(
   const Lane target_lane,
   const int prev_waypoints)
 {
-  auto collision_cost   = ::collision_cost(prev_waypoints * DeltaT, trajectory, road.other_cars()) * 1000;
+  auto collision_cost   = ::collision_cost(prev_waypoints * DeltaT, trajectory, road.other_cars()) * 10000;
   auto speed_cost       = ::speed_cost(target_speed) * 100;
   auto lane_change_cost = ::lane_change_cost(current_lane, target_lane) * 50;
   auto free_lane_cost   = ::free_lane_cost(egocar, road, target_lane);
-  auto center_lane_cost = ::not_in_center_lane_cost(target_lane) * 5;
+  auto center_lane_cost = ::not_in_center_lane_cost(target_lane);
 
   return collision_cost + speed_cost + lane_change_cost + free_lane_cost + center_lane_cost;
 }

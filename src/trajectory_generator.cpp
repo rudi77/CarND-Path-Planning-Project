@@ -136,7 +136,7 @@ void TrajectoryGenerator::add_anchor_points_change_lane(
   vector<double>& anchor_points_x,
   vector<double>& anchor_points_y)
 {
-  auto T = Horizon + 1.0;
+  auto T = car.current_lane == target_lane ? Horizon : Horizon + 1.0;
   auto a = AccMax;
   auto a_end = AccMax;
 
@@ -198,6 +198,10 @@ void TrajectoryGenerator::add_anchor_points_change_lane(
   auto anchor_point2 = _map.get_xy(s_end_pos + 30, 2 + 4 * static_cast<int>(target_lane));
   anchor_points_x.push_back(anchor_point2[0]);
   anchor_points_y.push_back(anchor_point2[1]);
+
+  auto anchor_point3 = _map.get_xy(s_end_pos + 60, 2 + 4 * static_cast<int>(target_lane));
+  anchor_points_x.push_back(anchor_point3[0]);
+  anchor_points_y.push_back(anchor_point3[1]);
 }
 
 vector<double> TrajectoryGenerator::perturb_data(vector<double> means, vector<double> sigmas)
