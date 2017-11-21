@@ -40,7 +40,20 @@ The Path Planner consists of the following classes:
 
 - __TrajectoryGenerator__: The TrajectorGenerator generates trajectories. It takes the current egocar's state, the target speed and the target lane as input parameters and computes a trajectory. The trajectory is computed in frenet coordinates but finally transformed into global coordinates as its is required by the simulator. 
 
+
+## Discussion
+
+In principle my Highway Path Planner works, at least most of the time but there still many features that I haven't implemented.
+
+- It does not use a separate __Prediction__ module which uses a __Model-Based__ or __Data-Based__ approach to predict the trajectories of other vehicles using.
+
+- The acceleration of the egocar does not work properly.
+
+- The state machine is very simple and could definitely be improved.
+
+
 -----------------
+
 
    
 ### Simulator.
