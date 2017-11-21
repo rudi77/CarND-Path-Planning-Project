@@ -37,17 +37,6 @@ string hasData(string s) {
   return "";
 }
 
-
-int get_nearest_leading_car(const CarState& egocar, const vector<CarState>& other_cars, Lane lane)
-{
-  return -1;
-}
-
-int get_nearest_car_behind(const CarState& egocar, const vector<CarState>& other_cars, Lane lane)
-{
-  return -1;
-}
-
 int main() {
   uWS::Hub h;
  
@@ -84,7 +73,6 @@ int main() {
           // Previous path's end s and d values 
           double end_path_s = j[1]["end_path_s"];
           double end_path_d = j[1]["end_path_d"];
-
 
           car.update(x, y, s_, d, yaw, speed, end_path_s, end_path_d);
 
