@@ -58,15 +58,7 @@ vector<CarState> TrajectoryGenerator::compute_trajectory(const CarState& car, do
   auto current_speed = car.speed_prev;
   auto N = Horizon / DeltaT;
 
-  // Now add evenly spaced anchor points in Frenet coordinates
-  if (car.current_lane == target_lane)
-  {
-    add_anchor_points_keep_lane(car, target_lane, anchor_points_x, anchor_points_y);
-  }
-  else
-  {
-    add_anchor_points_change_lane(car, target_speed, current_speed, N, target_lane, anchor_points_x, anchor_points_y);
-  }
+  add_anchor_points_change_lane(car, target_speed, current_speed, N, target_lane, anchor_points_x, anchor_points_y);
 
   // Shifting anchor points into car reference points
   for (unsigned int i = 0; i < anchor_points_x.size(); ++i) {
@@ -135,22 +127,6 @@ vector<CarState> TrajectoryGenerator::compute_trajectory(const CarState& car, do
   return trajectory;
 }
 
-void TrajectoryGenerator::add_anchor_points_keep_lane(
-  const CarState& car, 
-  Lane target_lane, 
-  vector<double>& anchor_points_x, 
-  vector<double>& anchor_points_y)
-{
-  auto start_s = 30;
-  auto s = car.s > car.end_path_s ? car.s : car.end_path_s;
-  for (auto i = start_s; i <= 90; i += 30)
-  {
-    auto anchor_point = _map.get_xy(s + i, 2 + 4 * static_cast<int>(target_lane));
-    anchor_points_x.push_back(anchor_point[0]);
-    anchor_points_y.push_back(anchor_point[1]);
-  }
-}
-
 void TrajectoryGenerator::add_anchor_points_change_lane(
   const CarState& car,
   double& target_speed,
@@ -160,10 +136,9 @@ void TrajectoryGenerator::add_anchor_points_change_lane(
   vector<double>& anchor_points_x,
   vector<double>& anchor_points_y)
 {
-  auto T = 2.5;
+  auto T = Horizon + 1.0;
   auto a = AccMax;
   auto a_end = AccMax;
-  N = 2.0 / DeltaT + car.prev_waypoints.size();
 
   // Use JMT to generate possible trajectories
   auto s = car.prev_waypoints.size() == 0 ? car.s : car.end_path_s;
@@ -171,7 +146,7 @@ void TrajectoryGenerator::add_anchor_points_change_lane(
 
   if (target_speed >= OptimalSpeed)
   {
-    target_speed = OptimalSpeed - 1.0;
+    target_speed = OptimalSpeed;
     a = 0.0;
     a_end = 0.0;
   }
@@ -188,16 +163,14 @@ void TrajectoryGenerator::add_anchor_points_change_lane(
       }
       else
       {
-        if (v > OptimalSpeed - 1.0)
+        if (v >= OptimalSpeed)
         {
-          target_speed = OptimalSpeed - 1.0;
+          target_speed = OptimalSpeed;
           a_end = 0.0;
         }
       }
     }
   }
-
-  // how fast can we go?
 
   // how far can we go in T seconds?
   auto s_end_pos = pos_new(s, target_speed / Ms2Mps, 0.0, T);
@@ -208,34 +181,23 @@ void TrajectoryGenerator::add_anchor_points_change_lane(
   vector<double> start_d  = { d, 0.0, 0.0 };
   vector<double> end_d    = { d_end_pos, 0.0, 0.0 };
 
-
-  //std::cout << "JMT: " << list_to_string(start_s) << ", " << list_to_string(end_s) << std::endl;
-  //std::cout << "JMT: " << list_to_string(start_d) << ", " << list_to_string(end_d) << std::endl;
-
   auto coeff_s = JMT()(start_s, end_s, T);
   auto coeff_d = JMT()(start_d, end_d, T);
 
   auto poly_s = to_polynom(coeff_s);
   auto poly_d = to_polynom(coeff_d);
 
-  // get four evenly spaced points and use them as anchor points
-  auto t_step = 0.5;
-  auto t = 0.5;
-  for (auto i = 1; i <= T / t_step; ++i)
-  {
-    auto next_s = poly_s(t);
-    auto next_d = poly_d(t);
-    auto anchor_point = _map.get_xy(next_s, next_d);
+  auto next_s = poly_s(T);
+  auto next_d = poly_d(T);
+  auto anchor_point = _map.get_xy(next_s, next_d);
 
-    anchor_points_x.push_back(anchor_point[0]);
-    anchor_points_y.push_back(anchor_point[1]);
-
-    t += t_step;
-  }
-
-  auto anchor_point = _map.get_xy(s_end_pos + 30, 2 + 4 * static_cast<int>(target_lane));
   anchor_points_x.push_back(anchor_point[0]);
   anchor_points_y.push_back(anchor_point[1]);
+
+  // add another anchor point
+  auto anchor_point2 = _map.get_xy(s_end_pos + 30, 2 + 4 * static_cast<int>(target_lane));
+  anchor_points_x.push_back(anchor_point2[0]);
+  anchor_points_y.push_back(anchor_point2[1]);
 }
 
 vector<double> TrajectoryGenerator::perturb_data(vector<double> means, vector<double> sigmas)

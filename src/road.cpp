@@ -20,11 +20,6 @@ bool Road::is_lane_safe(Lane lane) const
 
   if (nearest_leading != nullptr)
   {
-    if (abs(nearest_leading->id) > 20)
-    {
-      throw std::runtime_error(nearest_leading->to_string());
-    }
-
     leading_too_close = nearest_leading->is_too_close(_egocar);
 
     if (leading_too_close)
@@ -35,7 +30,7 @@ bool Road::is_lane_safe(Lane lane) const
 
   if (nearest_behind != nullptr)
   {
-    behind_too_close = nearest_behind->is_too_close(_egocar, 10);
+    behind_too_close = nearest_behind->is_too_close(_egocar, SafetyBufferBack);
 
     if (behind_too_close)
     {

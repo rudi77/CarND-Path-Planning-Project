@@ -48,14 +48,17 @@ const unsigned int EGOCAR = 0xDEADBEEF;
 const double MaxS           = 6945.554;
 const double SpeedLimit     = 50.0;
 const double SpeedBuffer    = 1.0;
-const double OptimalSpeed   = 49.0;
+const double OptimalSpeed   = 49.5;
 const double Horizon        = 1.0;
 const double DeltaT         = 0.02;
 const double DeltaTT        = 0.02*0.02;
 const double AccMax         = 5.0;
 const double Ms2Mps         = 2.24;
-const double Vehicle_Radius = 1.5;
+const double Vehicle_Radius = 2.5;
 const double Max_Jerk       = 10.0;   // m / s / s / s
+
+const double SafetyBufferFront = 40.0;
+const double SafetyBufferBack = 10.0;
 
 const double Expected_Jerk_In_One_Sec = 2.0; // m / s / s
 const double Expected_Acc_In_One_Sec = 1.0;  // m / s

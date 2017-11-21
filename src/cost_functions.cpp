@@ -48,9 +48,7 @@ double collision_cost(int prev_waypoints, const std::vector<CarState>& trajector
       }
     }
   }
-  // For each other car
-  //    Check for collision: we assume that the other cars are drving with constant speed
-  //std::cout << "COLLSION COST END WITHOUT COLLISION" << std::endl;
+
   return 0.0;
 }
 

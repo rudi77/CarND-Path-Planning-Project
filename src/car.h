@@ -122,7 +122,7 @@ public:
   // checks whether this car is in front of "car"
   bool is_in_front(const CarState& car) const
   {
-    auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * 0.02 * this->speed;
+    auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * DeltaT * this->speed;
     auto car_s = car.prev_waypoints.size() > 0 ? car.end_path_s : car.s;
     auto in_front =  (this->s + check_car_s) > car_s;
 
@@ -131,24 +131,19 @@ public:
 
   bool is_behind(const CarState& car) const
   {
-    auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * 0.02 * this->speed;
+    auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * DeltaT * this->speed;
     auto car_s = car.prev_waypoints.size() > 0 ? car.end_path_s : car.s;
 
     return (this->s + check_car_s) < car_s;
   }
 
   // checks whether another car is to too close.
-  bool is_too_close(const CarState& car, double safety_buffer = 30) const
+  bool is_too_close(const CarState& car, double safety_buffer = SafetyBufferFront) const
   {
-    auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * 0.02 * this->speed;
+    auto check_car_s = static_cast<double>(car.prev_waypoints.size()) * DeltaT * this->speed;
     auto car_s = car.prev_waypoints.size() > 0 ? car.end_path_s : car.s;
     auto distance = (this->s + check_car_s) - car_s;
     auto too_close = -safety_buffer < distance && distance < safety_buffer;
-
-    //if (too_close)
-    //{
-    //  std::cout << RED << "TOO CLOSE car: " << this->id <<  ", lane: " << lane_to_name(current_lane) << ", dist: " << distance << ", speed: " << this->speed << DEF << std::endl;
-    //}
 
     return too_close;
   }
