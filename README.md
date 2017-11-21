@@ -1,4 +1,7 @@
 # CarND-Path-Planning-Project
+
+<a href="url"><img src="./images/wincident3.png" height="480" width="640" ></a>
+
 In this project, the goal is to design a path planner that is able to create smooth, safe paths for the car to follow along a 3 lane highway with traffic. The path planner shall be able to keep inside its lane, avoid collisions with other cars, and pass slower moving traffic all by using localization, sensor fusion, and map data.
 
 ## Program Usage
